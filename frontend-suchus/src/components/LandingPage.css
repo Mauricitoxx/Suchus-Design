@@ -1,0 +1,90 @@
+/* LandingPage.css */
+body, html {
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+.landing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.landing-header nav a {
+  margin-left: 1.5rem;
+  text-decoration: none;
+  color: #333;
+  font-weight: bold;
+}
+
+.hero-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4rem 2rem;
+  background-color: #eaeaea;
+}
+
+.hero-text h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.hero-text p {
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.btn-primary, .btn-secondary {
+  display: inline-block;
+  padding: 0.8rem 1.5rem;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+.btn-primary {
+  background-color: #333;
+  color: #fff;
+}
+
+.btn-secondary {
+  background-color: #fff;
+  color: #333;
+  border: 2px solid #333;
+}
+
+.services-section, .products-section, .orders-section, .contact-section {
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.services-cards {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.card {
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  width: 250px;
+}
+
+.landing-footer {
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  padding: 1.5rem;
+}
