@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Usuario, UsuarioTipo
 
-class UsuarioRegister(serializers.ModelSerializer):
+class UsuarioRegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
         fields = ["email", "contraseña", "nombre", "apellido", "telefono"]
@@ -12,3 +12,7 @@ class UsuarioRegister(serializers.ModelSerializer):
         cliente_tipo = UsuarioTipo.objects.get(descripcion="Cliente")
         validated_data['usuarioTipo'] = cliente_tipo #Chavales esto es para que sea cliente si o si
         return super().create(validated_data)
+    
+class UsuarioLoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    contraseña = serializers.CharField()
