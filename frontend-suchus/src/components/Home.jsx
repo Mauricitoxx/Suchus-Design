@@ -1,6 +1,8 @@
 import React from "react";
 import "./Home.css";
+import PerfilMenu from "./PerfilMenu";
 import { Link } from "react-router-dom"; // Si usas React Router
+import CardServicio from "./CardServicio";
 
 const Home = () => {
   return (
@@ -25,6 +27,7 @@ const Home = () => {
       </nav>
       <section className="home-content">
         <h2>Selecciona una opción del menú</h2>
+        <CardServicio />
       </section>
       <footer className="home-footer">
         <p>&copy; {new Date().getFullYear()} Suchus Design. Todos los derechos reservados.</p>
