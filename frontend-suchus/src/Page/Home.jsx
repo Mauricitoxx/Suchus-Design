@@ -1,8 +1,8 @@
 import React from "react";
 import "../assets/style/Home.css";
 import { Link } from "react-router-dom";
-import CardImpresion from "./CardImpresion";
-import CardProducto from "./CardProducto";
+import CardImpresion from "../components/CardImpresion";
+import CardProducto from "../components/CardProducto";
 
 const Home = () => {
   return (

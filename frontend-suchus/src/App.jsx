@@ -1,9 +1,9 @@
 import './App.css'
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import LandingPage from "./components/LandingPage";
-import Login from "./components/Login";
-import Home from "./components/Home";
-import Perfil from "./components/PerfilMenu";
+import LandingPage from "./Page/LandingPage";
+import Login from "./Page/Login";
+import Home from "./Page/Home";
+import Perfil from "./Page/PerfilMenu";
 function App() {
 
   return (

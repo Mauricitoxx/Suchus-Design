@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import './Login.css';
+import '../assets/style/Login.css';
 import { EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
 import { Button, Input } from 'antd';
 import { useNavigate } from "react-router-dom"; // 👈 Importar navegación
