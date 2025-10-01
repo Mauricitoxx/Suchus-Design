@@ -1,0 +1,101 @@
+/* Estilos generales */
+.home-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.home-header,
+.home-footer {
+  width: 100%;
+  background-color: #282c34; /* Color común para header y footer */
+  color: #fff;
+  padding: 40px 0;
+  text-align: center;
+}
+
+/* Estilo del header */
+.header-content h1 {
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.header-content p {
+  font-size: 18px;
+  font-style: italic;
+}
+
+/* Estilo del menú */
+.home-menu {
+  margin-top: 20px;
+  width: 100%;
+}
+
+.home-menu ul {
+  list-style-type: none;
+  padding: 0;
+  text-align: center;
+}
+
+.home-menu li {
+  display: inline;
+  margin: 0 15px;
+}
+
+.home-menu a {
+  text-decoration: none;
+  color: #007bff;
+  font-size: 18px;
+}
+
+.home-menu a:hover {
+  text-decoration: underline;
+}
+
+/* Estilos del contenido */
+.home-content {
+  margin-top: 40px;
+  width: 80%;
+  text-align: center;
+}
+
+/* Estilo del footer */
+.footer-content {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+
+.contact-info, .social-media {
+  width: 45%;
+  text-align: left;
+}
+
+.contact-info p, .social-media ul {
+  font-size: 16px;
+}
+
+.social-media ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.social-media li {
+  margin: 5px 0;
+}
+
+.social-media a {
+  text-decoration: none;
+  color: #007bff;
+}
+
+.social-media a:hover {
+  text-decoration: underline;
+}
+
+/* Derechos de autor */
+.home-footer p {
+  font-size: 14px;
+  color: #fff;
+}
