@@ -64,7 +64,7 @@ const LandingPage = () => {
       <section id="orders" className="orders-section">
         <h2>Realizá tu Pedido</h2>
         <p>Registrate y subí tus archivos o seleccioná los productos que necesites.</p>
-        <a href="/login" className="btn-secondary">Iniciar Sesión / Registrarse</a>
+        <a href="/Login" className="btn-secondary">Iniciar Sesión / Registrarse</a>
       </section>
 
       {/* Contact Section */}
