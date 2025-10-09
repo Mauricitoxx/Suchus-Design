@@ -1,0 +1,13 @@
+.card-impresion {
+  margin-bottom: 20px;
+}
+
+.impresion-opciones {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.impresion-opciones span {
+  margin-right: 12px;
+}

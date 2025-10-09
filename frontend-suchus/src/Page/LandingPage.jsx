@@ -1,6 +1,6 @@
 // LandingPage.jsx
 import React from "react";
-import "./LandingPage.css";
+import "../assets/style/LandingPage.css";
 
 const LandingPage = () => {
   return (
