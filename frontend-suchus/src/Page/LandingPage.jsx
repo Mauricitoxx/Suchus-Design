@@ -27,7 +27,7 @@ const LandingPage = () => {
           <a href="#orders" className="btn-primary">Realizar Pedido</a>
         </div>
         <div className="hero-image">
-          <img src="/images/hero-print.jpg" alt="Impresión de documentos"/>
+          <img src="https://cdn11.bigcommerce.com/s-ydriczk/images/stencil/1500x1500/products/90847/101604/Cartman-mooning-South-Park-Lifesize-Cardboard-Cutout-buy-now-at-starstills__01937.1750329558.jpg?c=2" alt="Impresión de documentos"/>
         </div>
       </section>
 
@@ -64,7 +64,7 @@ const LandingPage = () => {
       <section id="orders" className="orders-section">
         <h2>Realizá tu Pedido</h2>
         <p>Registrate y subí tus archivos o seleccioná los productos que necesites.</p>
-        <a href="/login" className="btn-secondary">Iniciar Sesión / Registrarse</a>
+        <a href="/Login" className="btn-secondary">Iniciar Sesión / Registrarse</a>
       </section>
 
       {/* Contact Section */}

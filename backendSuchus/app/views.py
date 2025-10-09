@@ -1,10 +1,10 @@
 from django.shortcuts import render
-from rest_framework import generics, status
+from rest_framework import generics, status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth.hashers import check_password
 from .models import Usuario
-from .serializers import UsuarioRegisterSerializer, UsuarioLoginSerializer
+from .serializers import UsuarioRegisterSerializer, UsuarioLoginSerializer, UsuarioUpdateSerializer ,UsuarioEmailUpdateSerializer
 
 # Create your views here.
 
@@ -27,3 +27,19 @@ class UsuarioLoginView(APIView):
             except:
                 return Response({"error": "Usuario no encontrado"}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class UsuarioUpdateView(generics.UpdateAPIView):
+    queryset = Usuario.objects.all()
+    serializer_class = UsuarioUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+class UsuarioEmailUpdateView(generics.UpdateAPIView):
+    queryset = Usuario.objects.all()
+    serializer_class = UsuarioEmailUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
