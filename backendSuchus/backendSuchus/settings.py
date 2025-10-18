@@ -38,7 +38,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'app',
-    'rest_framework'
+    'rest_framework',
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 MIDDLEWARE = [
@@ -52,7 +54,12 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'backendSuchus.urls'
-
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'drahhi0s3',
+    'API_KEY': '138317882199727',
+    'API_SECRET': 'r92FW0H3XqwRxYj9mA34zFP4CGI'
+}
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -121,4 +128,3 @@ STATIC_URL = 'static/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

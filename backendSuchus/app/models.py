@@ -46,7 +46,7 @@ class Impresion (models.Model):
     ]
     color=models.BooleanField(null=False)
     formato=models.CharField(max_length=3, choices=FORMATO, default="A4")
-    url=models.CharField(null=False, max_length=300)
+    url=models.ImageField(upload_to='archivos/')
 
 class PedidoImpresionDetalle(models.Model):
     subtotal=models.FloatField(null=False)
