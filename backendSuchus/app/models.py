@@ -11,8 +11,15 @@ class Usuario(models.Model):
     apellido = models.CharField(max_length=50, null=False)
     telefono = models.CharField(max_length=20, blank=True, null=True)
     usuarioTipo = models.ForeignKey(UsuarioTipo, on_delete=models.CASCADE)
+    activo = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
+    
+    def es_admin(self):
+        return self.usuarioTipo.descripcio == "Admin"
 
 class Pedido (models.Model):
     ESTADO= [

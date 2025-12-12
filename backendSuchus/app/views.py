@@ -6,12 +6,15 @@ from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.contrib.auth.hashers import check_password
 from django.utils import timezone
+from django.db.models import Q
 from datetime import timedelta
 import boto3
 import uuid
 import os
-from .models import Usuario, Pedido, Impresion, Producto
-from .serializers import UsuarioRegisterSerializer, UsuarioLoginSerializer, PedidoSerializer, ImpresionSerializer, ProductoSerializer
+from .models import Usuario, Pedido, Impresion, Producto, UsuarioTipo
+from .serializers import (UsuarioRegisterSerializer, UsuarioLoginSerializer, PedidoSerializer, 
+                          ImpresionSerializer, ProductoSerializer, UsuarioSerializer,
+                          UsuarioCreateSerializer, UsuarioUpdateSerializer)
 
 # Create your views here.
 
@@ -423,4 +426,283 @@ class ProductoViewSet(viewsets.ModelViewSet):
             "precio_anterior": precio_anterior,
             "precio_nuevo": nuevo_precio,
             "producto": serializer.data
+        })
+
+class UsuarioViewSet(viewsets.ModelViewSet):
+    queryset = Usuario.objects.all()
+    
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return UsuarioCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return UsuarioUpdateSerializer
+        return UsuarioSerializer
+    
+    def get_queryset(self):
+        queryset = Usuario.objects.all()
+        activo = self.request.query_params.get('activo', None)
+        tipo_usuario = self.request.query_params.get('tipo_usuario', None)
+        search = self.request.query_params.get('search', None)
+        
+        if activo is not None:
+            activo_bool = activo.lower() == 'true'
+            queryset = queryset.filter(activo=activo_bool)
+        
+        if tipo_usuario is not None:
+            queryset = queryset.filter(usuarioTipo__descripcion__icontains=tipo_usuario)
+        
+        if search is not None:
+            queryset = queryset.filter(
+                Q(nombre__icontains=search) |
+                Q(apellido__icontains=search) |
+                Q(email__icontains=search)
+            )
+        
+        return queryset.select_related('usuarioTipo')
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Verificar si intenta crear un Admin
+        tipo_usuario_id = serializer.validated_data.get('usuarioTipo')
+        tipo_usuario = UsuarioTipo.objects.get(id=tipo_usuario_id.id)
+        
+        if tipo_usuario.descripcion.lower() == 'admin':
+            # Verificar si el usuario que crea es Admin
+            usuario_id = request.data.get('usuario_actual_id')
+            if not usuario_id:
+                return Response(
+                    {"error": "Se requiere usuario_actual_id para crear Admins"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            try:
+                usuario_actual = Usuario.objects.get(id=usuario_id, activo=True)
+                if not usuario_actual.es_admin():
+                    return Response(
+                        {"error": "Solo los Admins pueden crear otros Admins"},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except Usuario.DoesNotExist:
+                return Response(
+                    {"error": "Usuario actual no válido"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {
+                "mensaje": "Usuario creado correctamente",
+                "usuario": UsuarioSerializer(serializer.instance).data
+            },
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
+    
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        return Response({
+            "mensaje": "Usuario actualizado correctamente",
+            "usuario": UsuarioSerializer(serializer.instance).data
+        })
+    
+    def destroy(self, request, *args, **kwargs):
+        usuario = self.get_object()
+        
+        # Verificar si es Admin intentando eliminar
+        if usuario.es_admin():
+            usuario_id = request.data.get('usuario_actual_id')
+            if not usuario_id:
+                return Response(
+                    {"error": "Se requiere usuario_actual_id para eliminar Admins"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            try:
+                usuario_actual = Usuario.objects.get(id=usuario_id, activo=True)
+                if not usuario_actual.es_admin():
+                    return Response(
+                        {"error": "Solo los Admins pueden eliminar otros Admins"},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except Usuario.DoesNotExist:
+                return Response(
+                    {"error": "Usuario actual no válido"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # Baja lógica
+        usuario.activo = False
+        usuario.save()
+        
+        return Response({
+            "mensaje": "Usuario desactivado correctamente",
+            "usuario": UsuarioSerializer(usuario).data
+        })
+    
+    @action(detail=True, methods=['post'])
+    def desactivar(self, request, pk=None):
+        usuario = self.get_object()
+        
+        if not usuario.activo:
+            return Response(
+                {"error": "El usuario ya está inactivo"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verificar permisos si es Admin
+        if usuario.es_admin():
+            usuario_id = request.data.get('usuario_actual_id')
+            if not usuario_id:
+                return Response(
+                    {"error": "Se requiere usuario_actual_id para desactivar Admins"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            try:
+                usuario_actual = Usuario.objects.get(id=usuario_id, activo=True)
+                if not usuario_actual.es_admin():
+                    return Response(
+                        {"error": "Solo los Admins pueden desactivar otros Admins"},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except Usuario.DoesNotExist:
+                return Response(
+                    {"error": "Usuario actual no válido"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        usuario.activo = False
+        usuario.save()
+        
+        serializer = self.get_serializer(usuario)
+        return Response({
+            "mensaje": "Usuario desactivado correctamente",
+            "usuario": serializer.data
+        })
+    
+    @action(detail=True, methods=['post'])
+    def activar(self, request, pk=None):
+        usuario = self.get_object()
+        
+        if usuario.activo:
+            return Response(
+                {"error": "El usuario ya está activo"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        usuario.activo = True
+        usuario.save()
+        
+        serializer = self.get_serializer(usuario)
+        return Response({
+            "mensaje": "Usuario activado correctamente",
+            "usuario": serializer.data
+        })
+    
+    @action(detail=False, methods=['get'])
+    def activos(self, request):
+        usuarios = Usuario.objects.filter(activo=True).select_related('usuarioTipo')
+        serializer = self.get_serializer(usuarios, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def inactivos(self, request):
+        usuarios = Usuario.objects.filter(activo=False).select_related('usuarioTipo')
+        serializer = self.get_serializer(usuarios, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def cambiar_contraseña(self, request, pk=None):
+        usuario = self.get_object()
+        
+        contraseña_actual = request.data.get('contraseña_actual')
+        contraseña_nueva = request.data.get('contraseña_nueva')
+        confirmar_contraseña = request.data.get('confirmar_contraseña')
+        
+        if not all([contraseña_actual, contraseña_nueva, confirmar_contraseña]):
+            return Response(
+                {"error": "Se requieren contraseña_actual, contraseña_nueva y confirmar_contraseña"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not check_password(contraseña_actual, usuario.contraseña):
+            return Response(
+                {"error": "La contraseña actual es incorrecta"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if contraseña_nueva != confirmar_contraseña:
+            return Response(
+                {"error": "Las contraseñas nuevas no coinciden"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if len(contraseña_nueva) < 6:
+            return Response(
+                {"error": "La contraseña debe tener al menos 6 caracteres"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        usuario.contraseña = make_password(contraseña_nueva)
+        usuario.save()
+        
+        return Response({
+            "mensaje": "Contraseña actualizada correctamente"
+        })
+    
+    @action(detail=True, methods=['post'])
+    def promover_admin(self, request, pk=None):
+        usuario = self.get_object()
+        
+        # Verificar que el usuario actual es Admin
+        usuario_actual_id = request.data.get('usuario_actual_id')
+        if not usuario_actual_id:
+            return Response(
+                {"error": "Se requiere usuario_actual_id"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            usuario_actual = Usuario.objects.get(id=usuario_actual_id, activo=True)
+            if not usuario_actual.es_admin():
+                return Response(
+                    {"error": "Solo los Admins pueden cambiar roles de usuario"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except Usuario.DoesNotExist:
+            return Response(
+                {"error": "Usuario actual no válido"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Obtener el tipo Admin
+        try:
+            tipo_admin = UsuarioTipo.objects.get(descripcion__iexact='admin')
+        except UsuarioTipo.DoesNotExist:
+            return Response(
+                {"error": "No existe el tipo de usuario Admin"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if usuario.usuarioTipo == tipo_admin:
+            return Response(
+                {"error": "El usuario ya es Admin"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        usuario.usuarioTipo = tipo_admin
+        usuario.save()
+        
+        serializer = self.get_serializer(usuario)
+        return Response({
+            "mensaje": "Usuario promovido a Admin correctamente",
+            "usuario": serializer.data
         })

@@ -17,6 +17,111 @@ class UsuarioLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     contraseña = serializers.CharField()
 
+class UsuarioSerializer(serializers.ModelSerializer):
+    tipo_usuario = serializers.CharField(source='usuarioTipo.descripcio', read_only=True)
+    es_admin = serializers.SerializerMethodField(read_only=True)
+    estado = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = Usuario
+        fields = ['id', 'email', 'nombre', 'apellido', 'telefono', 'usuarioTipo',
+                  'tipo_usuario', 'es_admin', 'activo', 'estado', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'usuarioTipo': {'write_only': True}
+        }
+    
+    def get_es_admin(self, obj):
+        return obj.es_admin()
+    
+    def get_estado(self, obj):
+        return "Activo" if obj.activo else "Inactivo"
+
+class UsuarioCreateSerializer(serializers.ModelSerializer):
+    contraseña = serializers.CharField(write_only=True, min_length=6)
+    confirmar_contraseña = serializers.CharField(write_only=True)
+    tipo_usuario = serializers.ChoiceField(choices=['Cliente', 'Admin'], write_only=True, required=False, default='Cliente')
+    
+    class Meta:
+        model = Usuario
+        fields = ['email', 'contraseña', 'confirmar_contraseña', 'nombre', 'apellido', 
+                  'telefono', 'tipo_usuario']
+    
+    def validate(self, data):
+        if data['contraseña'] != data['confirmar_contraseña']:
+            raise serializers.ValidationError({
+                "contraseña": "Las contraseñas no coinciden"
+            })
+        return data
+    
+    def create(self, validated_data):
+        from django.contrib.auth.hashers import make_password
+        validated_data.pop('confirmar_contraseña')
+        tipo_nombre = validated_data.pop('tipo_usuario', 'Cliente')
+        
+        usuario_tipo = UsuarioTipo.objects.get(descripcio=tipo_nombre)
+        validated_data['usuarioTipo'] = usuario_tipo
+        validated_data['contraseña'] = make_password(validated_data['contraseña'])
+        
+        return super().create(validated_data)
+
+class UsuarioUpdateSerializer(serializers.ModelSerializer):
+    contraseña_actual = serializers.CharField(write_only=True, required=False)
+    contraseña_nueva = serializers.CharField(write_only=True, required=False, min_length=6)
+    confirmar_contraseña = serializers.CharField(write_only=True, required=False)
+    
+    class Meta:
+        model = Usuario
+        fields = ['email', 'nombre', 'apellido', 'telefono', 
+                  'contraseña_actual', 'contraseña_nueva', 'confirmar_contraseña']
+    
+    def validate_email(self, value):
+        usuario = self.instance
+        if Usuario.objects.exclude(pk=usuario.pk).filter(email=value).exists():
+            raise serializers.ValidationError("Este email ya está en uso por otro usuario")
+        return value
+    
+    def validate(self, data):
+        # Si se intenta cambiar la contraseña
+        if 'contraseña_nueva' in data or 'contraseña_actual' in data:
+            if not all(k in data for k in ['contraseña_actual', 'contraseña_nueva', 'confirmar_contraseña']):
+                raise serializers.ValidationError({
+                    "contraseña": "Para cambiar la contraseña debes proporcionar: contraseña_actual, contraseña_nueva y confirmar_contraseña"
+                })
+            
+            if data['contraseña_nueva'] != data['confirmar_contraseña']:
+                raise serializers.ValidationError({
+                    "contraseña_nueva": "Las contraseñas nuevas no coinciden"
+                })
+            
+            # Validar contraseña actual
+            from django.contrib.auth.hashers import check_password
+            if not check_password(data['contraseña_actual'], self.instance.contraseña):
+                raise serializers.ValidationError({
+                    "contraseña_actual": "La contraseña actual es incorrecta"
+                })
+        
+        return data
+    
+    def update(self, instance, validated_data):
+        from django.contrib.auth.hashers import make_password
+        
+        # Remover campos de contraseña del validated_data
+        validated_data.pop('contraseña_actual', None)
+        validated_data.pop('confirmar_contraseña', None)
+        contraseña_nueva = validated_data.pop('contraseña_nueva', None)
+        
+        # Si hay contraseña nueva, hashearla
+        if contraseña_nueva:
+            instance.contraseña = make_password(contraseña_nueva)
+        
+        # Actualizar otros campos
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        instance.save()
+        return instance
+
 class PedidoSerializer(serializers.ModelSerializer):
     usuario_nombre = serializers.CharField(source='fk_usuario.nombre', read_only=True)
     usuario_apellido = serializers.CharField(source='fk_usuario.apellido', read_only=True)
