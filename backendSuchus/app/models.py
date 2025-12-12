@@ -31,6 +31,9 @@ class Producto (models.Model):
     nombre=models.CharField(max_length=100, null=False)
     descripcion=models.TextField(null=False)
     precioUnitario=models.FloatField(null=False)
+    activo=models.BooleanField(default=True)
+    created_at=models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at=models.DateTimeField(auto_now=True, null=True, blank=True)
     #stockActual=models.IntegerField(null=False)
     #stockMinimo=models.IntegerField(null=False) 
 

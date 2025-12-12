@@ -10,8 +10,8 @@ from datetime import timedelta
 import boto3
 import uuid
 import os
-from .models import Usuario, Pedido, Impresion
-from .serializers import UsuarioRegisterSerializer, UsuarioLoginSerializer, PedidoSerializer, ImpresionSerializer
+from .models import Usuario, Pedido, Impresion, Producto
+from .serializers import UsuarioRegisterSerializer, UsuarioLoginSerializer, PedidoSerializer, ImpresionSerializer, ProductoSerializer
 
 # Create your views here.
 
@@ -231,3 +231,196 @@ class ImpresionViewSet(viewsets.ModelViewSet):
                 {"error": f"Error en limpieza: {str(e)}"}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+class ProductoViewSet(viewsets.ModelViewSet):
+    queryset = Producto.objects.all()
+    serializer_class = ProductoSerializer
+    
+    def get_queryset(self):
+        """Obtener productos con filtros opcionales"""
+        queryset = Producto.objects.all()
+        
+        # Filtro por estado (activo/inactivo)
+        activo = self.request.query_params.get('activo', None)
+        if activo is not None:
+            queryset = queryset.filter(activo=activo.lower() == 'true')
+        
+        # Filtro por rango de precios
+        precio_min = self.request.query_params.get('precio_min', None)
+        precio_max = self.request.query_params.get('precio_max', None)
+        if precio_min is not None:
+            queryset = queryset.filter(precioUnitario__gte=float(precio_min))
+        if precio_max is not None:
+            queryset = queryset.filter(precioUnitario__lte=float(precio_max))
+        
+        # Búsqueda por nombre
+        nombre = self.request.query_params.get('nombre', None)
+        if nombre is not None:
+            queryset = queryset.filter(nombre__icontains=nombre)
+        
+        return queryset.order_by('-created_at')
+    
+    def create(self, request, *args, **kwargs):
+        """Alta de producto"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Validaciones adicionales
+        if serializer.validated_data['precioUnitario'] <= 0:
+            return Response(
+                {"error": "El precio unitario debe ser mayor a 0"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
+    
+    def update(self, request, *args, **kwargs):
+        """Modificación completa de producto"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Validar que el producto esté activo
+        if not instance.activo:
+            return Response(
+                {"error": "No se puede modificar un producto inactivo"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        
+        # Validar precio si se está actualizando
+        if 'precioUnitario' in serializer.validated_data:
+            if serializer.validated_data['precioUnitario'] <= 0:
+                return Response(
+                    {"error": "El precio unitario debe ser mayor a 0"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        self.perform_update(serializer)
+        return Response(serializer.data)
+    
+    def partial_update(self, request, *args, **kwargs):
+        """Actualización parcial de producto"""
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+    
+    def destroy(self, request, *args, **kwargs):
+        """Baja física de producto (solo para testing)"""
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {"mensaje": "Producto eliminado físicamente"},
+            status=status.HTTP_204_NO_CONTENT
+        )
+    
+    @action(detail=True, methods=['patch'])
+    def desactivar(self, request, pk=None):
+        """Baja lógica de producto"""
+        producto = self.get_object()
+        
+        if not producto.activo:
+            return Response(
+                {"error": "El producto ya está inactivo"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        producto.activo = False
+        producto.save()
+        serializer = self.get_serializer(producto)
+        return Response({
+            "mensaje": "Producto desactivado correctamente",
+            "producto": serializer.data
+        })
+    
+    @action(detail=True, methods=['patch'])
+    def activar(self, request, pk=None):
+        """Reactivar producto"""
+        producto = self.get_object()
+        
+        if producto.activo:
+            return Response(
+                {"error": "El producto ya está activo"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        producto.activo = True
+        producto.save()
+        serializer = self.get_serializer(producto)
+        return Response({
+            "mensaje": "Producto activado correctamente",
+            "producto": serializer.data
+        })
+    
+    @action(detail=False, methods=['get'])
+    def activos(self, request):
+        """Listar solo productos activos"""
+        productos_activos = Producto.objects.filter(activo=True).order_by('-created_at')
+        page = self.paginate_queryset(productos_activos)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(productos_activos, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def inactivos(self, request):
+        """Listar solo productos inactivos"""
+        productos_inactivos = Producto.objects.filter(activo=False).order_by('-updated_at')
+        page = self.paginate_queryset(productos_inactivos)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(productos_inactivos, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['patch'])
+    def actualizar_precio(self, request, pk=None):
+        """Actualización específica de precio"""
+        producto = self.get_object()
+        
+        if not producto.activo:
+            return Response(
+                {"error": "No se puede modificar el precio de un producto inactivo"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        nuevo_precio = request.data.get('precioUnitario')
+        if nuevo_precio is None:
+            return Response(
+                {"error": "El campo 'precioUnitario' es requerido"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            nuevo_precio = float(nuevo_precio)
+            if nuevo_precio <= 0:
+                return Response(
+                    {"error": "El precio debe ser mayor a 0"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except ValueError:
+            return Response(
+                {"error": "El precio debe ser un número válido"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        precio_anterior = producto.precioUnitario
+        producto.precioUnitario = nuevo_precio
+        producto.save()
+        
+        serializer = self.get_serializer(producto)
+        return Response({
+            "mensaje": "Precio actualizado correctamente",
+            "precio_anterior": precio_anterior,
+            "precio_nuevo": nuevo_precio,
+            "producto": serializer.data
+        })

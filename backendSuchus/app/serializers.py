@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Usuario, UsuarioTipo, Pedido, Impresion
+from .models import Usuario, UsuarioTipo, Pedido, Impresion, Producto
 
 class UsuarioRegisterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -44,3 +44,15 @@ class ImpresionSerializer(serializers.ModelSerializer):
         from django.utils import timezone
         delta = timezone.now() - obj.last_accessed
         return delta.days
+
+class ProductoSerializer(serializers.ModelSerializer):
+    estado = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = Producto
+        fields = ['id', 'nombre', 'descripcion', 'precioUnitario', 'activo', 
+                  'created_at', 'updated_at', 'estado']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_estado(self, obj):
+        return "Activo" if obj.activo else "Inactivo"
