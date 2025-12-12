@@ -47,6 +47,12 @@ class Impresion (models.Model):
     color=models.BooleanField(null=False)
     formato=models.CharField(max_length=3, choices=FORMATO, default="A4")
     url=models.CharField(null=False, max_length=300)
+    nombre_archivo=models.CharField(max_length=255, null=True, blank=True)
+    cloudflare_key=models.CharField(max_length=500, null=True, blank=True)
+    created_at=models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at=models.DateTimeField(auto_now=True, null=True, blank=True)
+    last_accessed=models.DateTimeField(auto_now=True, null=True, blank=True)
+    fk_usuario=models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True, blank=True)
 
 class PedidoImpresionDetalle(models.Model):
     subtotal=models.FloatField(null=False)
