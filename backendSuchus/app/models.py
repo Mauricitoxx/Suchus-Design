@@ -11,8 +11,15 @@ class Usuario(models.Model):
     apellido = models.CharField(max_length=50, null=False)
     telefono = models.CharField(max_length=20, blank=True, null=True)
     usuarioTipo = models.ForeignKey(UsuarioTipo, on_delete=models.CASCADE)
+    activo = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
+    
+    def es_admin(self):
+        return self.usuarioTipo.descripcio == "Admin"
 
 class Pedido (models.Model):
     ESTADO= [
@@ -31,6 +38,9 @@ class Producto (models.Model):
     nombre=models.CharField(max_length=100, null=False)
     descripcion=models.TextField(null=False)
     precioUnitario=models.FloatField(null=False)
+    activo=models.BooleanField(default=True)
+    created_at=models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at=models.DateTimeField(auto_now=True, null=True, blank=True)
     #stockActual=models.IntegerField(null=False)
     #stockMinimo=models.IntegerField(null=False) 
 
@@ -46,7 +56,13 @@ class Impresion (models.Model):
     ]
     color=models.BooleanField(null=False)
     formato=models.CharField(max_length=3, choices=FORMATO, default="A4")
-    url=models.ImageField(upload_to='archivos/')
+    url=models.CharField(null=False, max_length=300)
+    nombre_archivo=models.CharField(max_length=255, null=True, blank=True)
+    cloudflare_key=models.CharField(max_length=500, null=True, blank=True)
+    created_at=models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at=models.DateTimeField(auto_now=True, null=True, blank=True)
+    last_accessed=models.DateTimeField(auto_now=True, null=True, blank=True)
+    fk_usuario=models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True, blank=True)
 
 class PedidoImpresionDetalle(models.Model):
     subtotal=models.FloatField(null=False)
