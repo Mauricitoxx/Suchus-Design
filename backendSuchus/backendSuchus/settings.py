@@ -60,21 +60,22 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# CORS Configuration
-CORS_ALLOWED_ORIGINS = os.getenv(
-    'CORS_ALLOWED_ORIGINS', 
-    'http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173'
-).split(',')
+# CORS Configuration - Simple
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+]
 
 CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'backendSuchus.urls'
 
-# Cloudinary Configuration (from environment variables)
+# Cloudinary Configuration (from environment variables only)
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME', 'drahhi0s3'),
-    'API_KEY': os.getenv('CLOUDINARY_API_KEY', '138317882199727'),
-    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET', 'r92FW0H3XqwRxYj9mA34zFP4CGI')
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET')
 }
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
