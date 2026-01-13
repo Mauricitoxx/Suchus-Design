@@ -2,7 +2,11 @@ from django.db import models
 
 # Create your models here.
 class UsuarioTipo(models.Model):
-    descripcio=models.CharField(max_length=100, null=False)
+    descripcion = models.CharField(max_length=100, null=False)
+    
+    def __str__(self):
+        return self.descripcion
+
 
 class Usuario(models.Model):
     email = models.EmailField(unique=True)
@@ -19,33 +23,45 @@ class Usuario(models.Model):
         return f"{self.nombre} {self.apellido}"
     
     def es_admin(self):
-        return self.usuarioTipo.descripcio == "Admin"
+        return self.usuarioTipo.descripcion == "Admin"
 
-class Pedido (models.Model):
-    ESTADO= [
+
+class Pedido(models.Model):
+    ESTADO = [
         ("En revisión", "en revisión"),
         ("En proceso", "en proceso"),
-        ("Preparado","preparado"),
+        ("Preparado", "preparado"),
         ("Retirado", "retirado"),
-        ("Cancelado","cancelado")
-        ]
-    estado= models.CharField(max_length=100, choices=ESTADO, default="En revisión")
-    observacion=models.TextField(null=True, blank=True)
-    total=models.FloatField(null=False)
-    fk_usuario=models.ForeignKey(Usuario, on_delete=models.CASCADE)
+        ("Cancelado", "cancelado")
+    ]
+    estado = models.CharField(max_length=100, choices=ESTADO, default="En revisión")
+    observacion = models.TextField(null=True, blank=True)
+    total = models.FloatField(null=False)
+    fk_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    
+    def __str__(self):
+        return f"Pedido #{self.id} - {self.fk_usuario.nombre}"
 
-class Producto (models.Model):
-    nombre=models.CharField(max_length=100, null=False)
-    descripcion=models.TextField(null=False)
-    precioUnitario=models.FloatField(null=False)
-    activo=models.BooleanField(default=True)
-    created_at=models.DateTimeField(auto_now_add=True, null=True, blank=True)
-    updated_at=models.DateTimeField(auto_now=True, null=True, blank=True)
-    #stockActual=models.IntegerField(null=False)
-    #stockMinimo=models.IntegerField(null=False) 
 
-class Impresion (models.Model):
-    FORMATO= [
+class Producto(models.Model):
+    nombre = models.CharField(max_length=100, null=False)
+    descripcion = models.TextField(null=False)
+    precioUnitario = models.FloatField(null=False)
+    activo = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    
+    def __str__(self):
+        return self.nombre
+    
+    class Meta:
+        ordering = ['-created_at']
+
+
+class Impresion(models.Model):
+    FORMATO = [
         ("A0", "A0 (841 × 1189 mm)"),
         ("A1", "A1 (594 × 841 mm)"),
         ("A2", "A2 (420 × 594 mm)"),
@@ -54,44 +70,61 @@ class Impresion (models.Model):
         ("A5", "A5 (148 × 210 mm)"),
         ("A6", "A6 (105 × 148 mm)"),
     ]
-    color=models.BooleanField(null=False)
-    formato=models.CharField(max_length=3, choices=FORMATO, default="A4")
-    url=models.CharField(null=False, max_length=300)
-    nombre_archivo=models.CharField(max_length=255, null=True, blank=True)
-    cloudflare_key=models.CharField(max_length=500, null=True, blank=True)
-    created_at=models.DateTimeField(auto_now_add=True, null=True, blank=True)
-    updated_at=models.DateTimeField(auto_now=True, null=True, blank=True)
-    last_accessed=models.DateTimeField(auto_now=True, null=True, blank=True)
-    fk_usuario=models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True, blank=True)
+    color = models.BooleanField(null=False)
+    formato = models.CharField(max_length=3, choices=FORMATO, default="A4")
+    url = models.CharField(null=False, max_length=300)
+    nombre_archivo = models.CharField(max_length=255, null=True, blank=True)
+    cloudflare_key = models.CharField(max_length=500, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    last_accessed = models.DateTimeField(auto_now=True, null=True, blank=True)
+    fk_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.nombre_archivo} - {self.formato}"
+
 
 class PedidoImpresionDetalle(models.Model):
-    subtotal=models.FloatField(null=False)
-    fk_impresion=models.ForeignKey(Impresion, on_delete=models.CASCADE)
-    cantidadCopias=models.IntegerField(null=False)
-    fk_pedido=models.ForeignKey(Pedido, on_delete=models.CASCADE)
+    subtotal = models.FloatField(null=False)
+    fk_impresion = models.ForeignKey(Impresion, on_delete=models.CASCADE)
+    cantidadCopias = models.IntegerField(null=False)
+    fk_pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    
+    def __str__(self):
+        return f"Impresión {self.fk_impresion.id} - Pedido {self.fk_pedido.id}"
+
 
 class PedidoProductoDetalle(models.Model):
-    subtotal=models.FloatField(null=False)
-    cantidad=models.IntegerField(null=False)
-    fk_producto=models.ForeignKey(Producto, on_delete=models.CASCADE)
-    fk_pedido=models.ForeignKey(Pedido, on_delete=models.CASCADE)
+    subtotal = models.FloatField(null=False)
+    cantidad = models.IntegerField(null=False)
+    fk_producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    fk_pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    
+    def __str__(self):
+        return f"Producto {self.fk_producto.id} - Pedido {self.fk_pedido.id}"
+
 
 class Pago(models.Model):
-    ESTADO=[
+    ESTADO = [
         ("Pendiente", "pendiente"),
         ("Completado", "completado"),
         ("Fallido", "fallido")
     ]
-    MEDIO=[
+    MEDIO = [
         ("Crédito", "crédito"),
         ("Transferencia", "transferencia"),
         ("Débito", "débito"),
         ("Efectivo", "efectivo")
     ]
-    estado=models.CharField(max_length=10, choices=ESTADO, default="Pendiente")
-    fecha=models.DateTimeField(auto_now_add=True,null=False)
-    metodoPago=models.CharField(max_length=15, choices=MEDIO, default="Efectivo")
-    monto=models.FloatField(null=False)
-    #numero=models.IntegerField("null=False")
+    estado = models.CharField(max_length=10, choices=ESTADO, default="Pendiente")
+    fecha = models.DateTimeField(auto_now_add=True, null=False)
+    metodoPago = models.CharField(max_length=15, choices=MEDIO, default="Efectivo")
+    monto = models.FloatField(null=False)
+    fk_pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
+    
+    def __str__(self):
+        return f"Pago {self.id} - {self.estado}"
     fk_pedido=models.ForeignKey(Pedido, on_delete=models.CASCADE)
 
