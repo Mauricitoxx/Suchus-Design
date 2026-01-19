@@ -80,6 +80,24 @@ class UsuarioLoginView(CustomTokenObtainPairView):
     """Deprecated: Use CustomTokenObtainPairView instead"""
     pass
 
+class LogoutView(APIView):
+    """Logout endpoint - cliente debe eliminar los tokens localmente"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        """
+        Como no usamos blacklist (incompatible con modelo Usuario custom),
+        el cliente debe eliminar los tokens del localStorage/sessionStorage.
+        Este endpoint solo confirma que el usuario está autenticado.
+        """
+        return Response(
+            {
+                "mensaje": "Logout exitoso. Elimina los tokens del cliente.",
+                "nota": "Los tokens expiran automáticamente después de 1 hora (access) y 1 día (refresh)"
+            },
+            status=status.HTTP_200_OK
+        )
+
 class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all()
     serializer_class = PedidoSerializer
