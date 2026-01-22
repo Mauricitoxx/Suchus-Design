@@ -1,10 +1,18 @@
 import React from "react";
 import "../assets/style/Home.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import CardImpresion from "../components/CardImpresion";
 import CardProducto from "../components/CardProducto";
+import authService from "../services/auth";
 
 const Home = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await authService.logout();
+    navigate('/login');
+  };
+
   return (
     <div className="home-container">
       {/* Header */}
@@ -28,7 +36,9 @@ const Home = () => {
             <Link to="/contacto">Contacto</Link>
           </li>
           <li>
-            <Link to="/">Cerrar sesión</Link>
+            <button onClick={handleLogout}>
+              Cerrar sesión
+            </button>
           </li>
         </ul>
       </nav>
