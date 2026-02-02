@@ -64,7 +64,7 @@ class UsuarioCreateSerializer(serializers.ModelSerializer):
         validated_data.pop('confirmar_contraseña')
         tipo_nombre = validated_data.pop('tipo_usuario', 'Cliente')
         
-        usuario_tipo = UsuarioTipo.objects.get(descripcio=tipo_nombre)
+        usuario_tipo = UsuarioTipo.objects.get(descripcion=tipo_nombre)
         validated_data['usuarioTipo'] = usuario_tipo
         validated_data['contraseña'] = make_password(validated_data['contraseña'])
         

@@ -2,7 +2,7 @@ from django.db import models
 
 # Create your models here.
 class UsuarioTipo(models.Model):
-    descripcio=models.CharField(max_length=100, null=False)
+    descripcion=models.CharField(max_length=100, null=False)
 
 class Usuario(models.Model):
     email = models.EmailField(unique=True)
@@ -19,7 +19,7 @@ class Usuario(models.Model):
         return f"{self.nombre} {self.apellido}"
     
     def es_admin(self):
-        return self.usuarioTipo.descripcio == "Admin"
+        return self.usuarioTipo.descripcion == "Admin"
 
 class Pedido (models.Model):
     ESTADO= [
