@@ -1,0 +1,89 @@
+/* Clase para el fondo animado */
+.navbar-animated-bg {
+  /* Definimos el degradado: 45 grados, rojo y azul */
+  background: linear-gradient(45deg, #ff009d, #0000ff, #46f9ff);
+  
+  /* Hacemos el fondo muy grande para poder moverlo */
+  background-size: 400% 400%;
+  
+  /* Aplicamos la animación: nombre, duración, suavizado, infinito */
+  animation: gradientFlow 10s ease infinite;
+}
+
+/* Definimos cómo se mueve el fondo */
+@keyframes gradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* --- ESTILOS RESPONSIVE DEL NAVBAR --- */
+
+/* Contenedor de los enlaces (Desktop por defecto) */
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+/* El botón de hamburguesa (Oculto en PC) */
+.menu-icon {
+  display: none;
+  cursor: pointer;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.bar {
+  width: 25px;
+  height: 3px;
+  background-color: white;
+  transition: all 0.3s ease;
+}
+
+/* --- VISTA MÓVIL (Max 768px) --- */
+@media (max-width: 768px) {
+  /* Mostramos el botón hamburguesa */
+  .menu-icon {
+    display: flex;
+  }
+
+  /* Transformamos el menú en una lista vertical */
+  .navbar-links {
+    display: none; /* Oculto por defecto */
+    flex-direction: column;
+    position: absolute;
+    top: 100%; /* Justo debajo del header */
+    left: 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.95); /* Fondo oscuro casi sólido */
+    padding: 20px 0;
+    border-top: 1px solid #333;
+  }
+
+  /* Clase que se agrega cuando abrimos el menú */
+  .navbar-links.active {
+    display: flex;
+    animation: slideDown 0.3s ease forwards;
+  }
+
+  /* Quitamos los bordes/separadores en celular para que se vea limpio */
+  .navbar-links a {
+    border: none !important; 
+    padding: 15px 0;
+    width: 100%;
+    text-align: center;
+    font-size: 1.5rem !important; /* Letra más grande para tocar con el dedo */
+  }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

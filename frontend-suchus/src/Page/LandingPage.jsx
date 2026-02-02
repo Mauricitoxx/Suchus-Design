@@ -1,35 +1,73 @@
-// LandingPage.jsx
 import React from "react";
+import Navbar from "./Navbar";
+import Chatbot from "../components/Chatbot";
 import "../assets/style/LandingPage.css";
+import imagen1 from "./imagenFondo1.jpg"; // Asegúrate que la ruta es correcta
 
 const LandingPage = () => {
   return (
+    // Quitamos los estilos globales que pusimos antes en el contenedor principal
     <div className="landing-container">
-      {/* Header */}
-      <header className="landing-header">
-        <h1>Suchus Copy & Design</h1>
-        <nav>
-          <a href="#services">Servicios</a>
-          <a href="#products">Productos</a>
-          <a href="#orders">Pedidos</a>
-          <a href="#contact">Contacto</a>
-        </nav>
-      </header>
+      <Navbar />
 
-      {/* Hero Section */}
-      <section className="hero-section">
-        <div className="hero-text">
-          <h2>Impresión y Servicios de Papelería de Calidad</h2>
-          <p>
-            Gestioná tus pedidos de forma rápida y segura desde nuestra web.
-            Archivos, impresiones, productos y más, todo en un solo lugar.
-          </p>
-          <a href="#orders" className="btn-primary">Realizar Pedido</a>
-        </div>
-        <div className="hero-image">
-          <img src="" alt="Impresión de documentos"/>
-        </div>
+      {/* --- HERO SECTION MODIFICADA --- */}
+      {/* 1. Le damos posición relativa para contener la imagen de fondo */}
+      <section className="hero-section" style={{ position: 'relative', overflow: 'hidden' }}>
+
+        {/* 2. DIV "OVERLAY" PARA LA IMAGEN DE FONDO */}
+        {/* Este div se posiciona absolutamente detrás del texto solo en esta sección */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundImage: `url(${imagen1})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            // Aplicamos el desenfoque y oscurecimiento
+            filter: 'blur(6px) brightness(0.3)',
+            // Escalamos un poco para evitar bordes blancos por el blur
+            transform: 'scale(1.1)',
+            // Lo mandamos al fondo de la sección
+            zIndex: 0
+          }}
+        />
+
+        {/* 3. EL CONTENIDO DE TEXTO */}
+        {/* Es importante ponerle posición relativa y zIndex mayor para que quede SOBRE la imagen */}
+<div 
+  className="hero-text" 
+  style={{ 
+    position: 'relative', 
+    zIndex: 1, 
+    color: 'white',
+    // Estas 3 líneas hacen la magia del centrado perfecto:
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, 7%)', 
+    // Esto centra el texto dentro del bloque:
+    textAlign: 'center',
+    width: '100%',
+    padding: '0 20px' // Para que no pegue a los bordes en celulares
+  }}
+>
+  <h2 style={{ color: 'white', fontSize: '2.5rem', marginBottom: '20px' }}>
+    Impresión y Servicios de Papelería de Calidad
+  </h2>
+  <p style={{ fontSize: '1.2rem', marginBottom: '30px' }}>
+    Gestioná tus pedidos de forma rápida y segura desde nuestra web.
+    <br /> {/* Salto de línea opcional para que se vea mejor */}
+    Archivos, impresiones, productos y más, todo en un solo lugar.
+  </p>
+  <a href="#orders" className="btn-primary">Realizar Pedido</a>
+</div>
+        {/* Ya no necesitamos el div "hero-image" antiguo aquí */}
+
       </section>
+
+      {/* --- El resto de secciones vuelven a tener su fondo normal --- */}
 
       {/* Services Section */}
       <section id="services" className="services-section">
@@ -82,6 +120,10 @@ const LandingPage = () => {
       <footer className="landing-footer">
         <p>© 2025 Suchus Copy & Design. Todos los derechos reservados.</p>
       </footer>
+
+      {/* Chatbot */}
+      {/* Componente flotante para chat */}
+      <Chatbot />
     </div>
   );
 };
