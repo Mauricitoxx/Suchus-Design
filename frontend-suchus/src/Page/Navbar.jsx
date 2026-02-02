@@ -1,5 +1,5 @@
 import React, { useState } from "react"; // 1. Importamos useState
-import "./navBar.css";
+import "./Navbar.css";
 import { Link } from "react-router-dom";
 
 const Navbar = () => {
