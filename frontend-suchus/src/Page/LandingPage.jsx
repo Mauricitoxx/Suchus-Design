@@ -1,8 +1,7 @@
 import React from "react";
 import Navbar from "./Navbar";
-import Chatbot from "../components/Chatbot";
 import "../assets/style/LandingPage.css";
-import imagen1 from "./imagenFondo1.jpg"; // Asegúrate que la ruta es correcta
+import imagen1 from "./ImagenFondo1.jpg"; // Asegúrate que la ruta es correcta (case-sensitive for deployment)
 
 const LandingPage = () => {
   return (
