@@ -1,9 +1,11 @@
 from django.shortcuts import render
-from rest_framework import generics, status, viewsets
+from rest_framework import generics, status, viewsets, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.hashers import check_password, make_password
 from django.utils import timezone
 from django.db.models import Q
@@ -18,29 +20,88 @@ from .serializers import (UsuarioRegisterSerializer, UsuarioLoginSerializer, Ped
 
 # Create your views here.
 
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Custom JWT Token Serializer for Usuario model (email-based authentication)"""
+    
+    username_field = 'email'
+    
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        # Add custom claims
+        token['email'] = user.email
+        token['nombre'] = user.nombre
+        return token
+    
+    def validate(self, attrs):
+        from rest_framework.exceptions import AuthenticationFailed
+        
+        # Get email and password from attrs (username_field is 'email')
+        email = attrs.get(self.username_field)
+        password = attrs.get('password')
+        
+        try:
+            user = Usuario.objects.get(email=email, activo=True)
+        except Usuario.DoesNotExist:
+            raise AuthenticationFailed('Credenciales inválidas')
+        
+        # Check password manually since Usuario uses custom password handling
+        if not check_password(password, user.contraseña):
+            raise AuthenticationFailed('Credenciales inválidas')
+        
+        # Generate tokens
+        refresh = self.get_token(user)
+        data = {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'nombre': user.nombre,
+                'tipo': user.usuarioTipo.descripcion,
+            }
+        }
+        return data
+
+
 class UsuarioRegisterView(generics.CreateAPIView):
     queryset = Usuario.objects.all()
     serializer_class = UsuarioRegisterSerializer
+    permission_classes = []  # AllowAny
 
-class UsuarioLoginView(APIView):
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    """Custom JWT Token endpoint with email authentication"""
+    serializer_class = CustomTokenObtainPairSerializer
+    permission_classes = []  # AllowAny
+
+
+class UsuarioLoginView(CustomTokenObtainPairView):
+    """Deprecated: Use CustomTokenObtainPairView instead"""
+    pass
+
+class LogoutView(APIView):
+    """Logout endpoint - cliente debe eliminar los tokens localmente"""
+    permission_classes = [permissions.IsAuthenticated]
+    
     def post(self, request):
-        serializer = UsuarioLoginSerializer(data = request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-            contraseña = serializer.validated_data['contraseña']
-            try:
-                usuario = Usuario.objects.get(email = email)
-                if check_password(contraseña, usuario.contraseña):
-                    return Response({"mensaje": "Login exitoso", "usuario_id": usuario.id})
-                else:
-                    return Response({"error": "Contraseña incorrecta"}, status = status.HTTP_401_UNAUTHORIZED)
-            except:
-                return Response({"error": "Usuario no encontrado"}, status=status.HTTP_401_UNAUTHORIZED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        """
+        Como no usamos blacklist (incompatible con modelo Usuario custom),
+        el cliente debe eliminar los tokens del localStorage/sessionStorage.
+        Este endpoint solo confirma que el usuario está autenticado.
+        """
+        return Response(
+            {
+                "mensaje": "Logout exitoso. Elimina los tokens del cliente.",
+                "nota": "Los tokens expiran automáticamente después de 1 hora (access) y 1 día (refresh)"
+            },
+            status=status.HTTP_200_OK
+        )
 
 class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all()
     serializer_class = PedidoSerializer
+    permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
         queryset = Pedido.objects.all()
@@ -74,6 +135,7 @@ class ImpresionViewSet(viewsets.ModelViewSet):
     queryset = Impresion.objects.all()
     serializer_class = ImpresionSerializer
     parser_classes = (MultiPartParser, FormParser, JSONParser)
+    permission_classes = [permissions.IsAuthenticated]
     
     def get_cloudflare_client(self):
         """Inicializa el cliente S3 para Cloudflare R2"""

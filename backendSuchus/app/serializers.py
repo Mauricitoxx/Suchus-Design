@@ -10,7 +10,7 @@ class UsuarioRegisterSerializer(serializers.ModelSerializer):
         from django.contrib.auth.hashers import make_password
         validated_data['contraseña'] = make_password(validated_data['contraseña'])
         cliente_tipo = UsuarioTipo.objects.get(descripcion="Cliente")
-        validated_data['usuarioTipo'] = cliente_tipo #Chavales esto es para que sea cliente si o si
+        validated_data['usuarioTipo'] = cliente_tipo
         return super().create(validated_data)
     
 class UsuarioLoginSerializer(serializers.Serializer):
@@ -18,7 +18,7 @@ class UsuarioLoginSerializer(serializers.Serializer):
     contraseña = serializers.CharField()
 
 class UsuarioSerializer(serializers.ModelSerializer):
-    tipo_usuario = serializers.CharField(source='usuarioTipo.descripcio', read_only=True)
+    tipo_usuario = serializers.CharField(source='usuarioTipo.descripcion', read_only=True)
     es_admin = serializers.SerializerMethodField(read_only=True)
     estado = serializers.SerializerMethodField(read_only=True)
     
