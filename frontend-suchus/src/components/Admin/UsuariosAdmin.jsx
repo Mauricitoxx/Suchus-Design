@@ -265,7 +265,12 @@ const UsuariosAdmin = () => {
           columns={columns} 
           dataSource={usuariosFiltrados} 
           rowKey="id"
-          pagination={{ pageSize: 10 }}
+          pagination={{ 
+            defaultPageSize: 50,
+            showSizeChanger: true,
+            showTotal: (total) => `Total: ${total} usuarios`,
+            pageSizeOptions: ['10', '20', '50', '100']
+          }}
           scroll={{ x: 'max-content' }}
           locale={{
             triggerDesc: 'Click para ordenar descendente',

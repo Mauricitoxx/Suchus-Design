@@ -241,7 +241,12 @@ const ProductosAdmin = () => {
           columns={columns} 
           dataSource={productosFiltrados} 
           rowKey="id"
-          pagination={{ pageSize: 10 }}
+          pagination={{ 
+            defaultPageSize: 50,
+            showSizeChanger: true,
+            showTotal: (total) => `Total: ${total} productos`,
+            pageSizeOptions: ['10', '20', '50', '100']
+          }}
           scroll={{ x: 'max-content' }}
           locale={{
             triggerDesc: 'Click para ordenar descendente',

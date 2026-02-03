@@ -147,7 +147,9 @@ const usuariosAPI = {
   // Listar todos los usuarios
   getAll: async (params = {}) => {
     try {
-      const response = await api.get('usuarios/', { params });
+      // Agregar límite alto para obtener todos los usuarios
+      const queryParams = { ...params, page_size: 1000 };
+      const response = await api.get('usuarios/', { params: queryParams });
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

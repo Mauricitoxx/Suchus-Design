@@ -6,6 +6,17 @@ class UsuarioRegisterSerializer(serializers.ModelSerializer):
         model = Usuario
         fields = ["email", "contraseña", "nombre", "apellido", "telefono"]
 
+    def validate_telefono(self, value):
+        if value:  # Solo validar si se proporciona un teléfono
+            import re
+            # Verificar que solo contenga números
+            if not re.match(r'^[0-9]+$', value):
+                raise serializers.ValidationError("El teléfono solo debe contener números")
+            # Verificar longitud
+            if len(value) < 8 or len(value) > 15:
+                raise serializers.ValidationError("El teléfono debe tener entre 8 y 15 dígitos")
+        return value
+
     def create(self, validated_data):
         from django.contrib.auth.hashers import make_password
         validated_data['contraseña'] = make_password(validated_data['contraseña'])
@@ -52,6 +63,17 @@ class UsuarioCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Ya existe un usuario con ese mail.")
         return value
     
+    def validate_telefono(self, value):
+        if value:  # Solo validar si se proporciona un teléfono
+            import re
+            # Verificar que solo contenga números
+            if not re.match(r'^[0-9]+$', value):
+                raise serializers.ValidationError("El teléfono solo debe contener números")
+            # Verificar longitud
+            if len(value) < 8 or len(value) > 15:
+                raise serializers.ValidationError("El teléfono debe tener entre 8 y 15 dígitos")
+        return value
+    
     def validate(self, data):
         if data['contraseña'] != data['confirmar_contraseña']:
             raise serializers.ValidationError({
@@ -85,6 +107,17 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
         usuario = self.instance
         if Usuario.objects.exclude(pk=usuario.pk).filter(email=value).exists():
             raise serializers.ValidationError("Este email ya está en uso por otro usuario")
+        return value
+    
+    def validate_telefono(self, value):
+        if value:  # Solo validar si se proporciona un teléfono
+            import re
+            # Verificar que solo contenga números
+            if not re.match(r'^[0-9]+$', value):
+                raise serializers.ValidationError("El teléfono solo debe contener números")
+            # Verificar longitud
+            if len(value) < 8 or len(value) > 15:
+                raise serializers.ValidationError("El teléfono debe tener entre 8 y 15 dígitos")
         return value
     
     def validate(self, data):
