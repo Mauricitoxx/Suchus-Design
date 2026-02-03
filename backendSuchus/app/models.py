@@ -57,7 +57,7 @@ class Producto(models.Model):
         return self.nombre
     
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['nombre']
 
 
 class Impresion(models.Model):

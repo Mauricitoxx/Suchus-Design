@@ -1,36 +1,52 @@
-import React, { useState } from 'react';
-import { Card, Button, Image } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Card, Button, Spin, message } from 'antd';
+import { FileTextOutlined, EditOutlined, BookOutlined, FolderOutlined, ShoppingOutlined, ScissorOutlined, HighlightOutlined, TagsOutlined } from '@ant-design/icons';
 import '../assets/style/CardProducto.css';
+import { productosAPI } from '../services/api';
 
-const productos = [
-  {
-    id: 1,
-    nombre: 'Resma de hojas A4',
-    precio: 2500,
-    imagen: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    id: 2,
-    nombre: 'Lápiz',
-    precio: 150,
-    imagen: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    id: 3,
-    nombre: 'Cuaderno',
-    precio: 800,
-    imagen: 'https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    id: 4,
-    nombre: 'Carpeta',
-    precio: 300,
-    imagen: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=400&q=80',
-  },
-];
+const obtenerIcono = (nombreProducto) => {
+  const nombre = nombreProducto.toLowerCase();
+  
+  if (nombre.includes('hoja') || nombre.includes('resma') || nombre.includes('papel')) 
+    return <FileTextOutlined style={{ fontSize: '80px', color: '#1890ff' }} />;
+  if (nombre.includes('lápiz') || nombre.includes('lapiz') || nombre.includes('lapicera') || nombre.includes('birome'))
+    return <EditOutlined style={{ fontSize: '80px', color: '#1890ff' }} />;
+  if (nombre.includes('cuaderno') || nombre.includes('libreta'))
+    return <BookOutlined style={{ fontSize: '80px', color: '#1890ff' }} />;
+  if (nombre.includes('carpeta'))
+    return <FolderOutlined style={{ fontSize: '80px', color: '#1890ff' }} />;
+  if (nombre.includes('tijera'))
+    return <ScissorOutlined style={{ fontSize: '80px', color: '#1890ff' }} />;
+  if (nombre.includes('marcador') || nombre.includes('resaltador'))
+    return <HighlightOutlined style={{ fontSize: '80px', color: '#1890ff' }} />;
+  if (nombre.includes('etiqueta'))
+    return <TagsOutlined style={{ fontSize: '80px', color: '#1890ff' }} />;
+  
+  // Icono por defecto para productos que no matcheen
+  return <ShoppingOutlined style={{ fontSize: '80px', color: '#1890ff' }} />;
+};
 
 const CardProducto = () => {
+  const [productos, setProductos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [cantidades, setCantidades] = useState({});
+
+  useEffect(() => {
+    cargarProductos();
+  }, []);
+
+  const cargarProductos = async () => {
+    try {
+      setLoading(true);
+      const response = await productosAPI.activos();
+      setProductos(response.results || response);
+    } catch (error) {
+      console.error('Error al cargar productos:', error);
+      message.error('Error al cargar los productos');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAgregar = (id) => {
     setCantidades((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
@@ -40,20 +56,35 @@ const CardProducto = () => {
     setCantidades((prev) => ({ ...prev, [id]: Math.max((prev[id] || 0) - 1, 0) }));
   };
 
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '50px' }}>
+        <Spin size="large" />
+        <p>Cargando productos...</p>
+      </div>
+    );
+  }
+
+  if (productos.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '50px' }}>
+        <ShoppingOutlined style={{ fontSize: '60px', color: '#ccc' }} />
+        <p>No hay productos disponibles</p>
+      </div>
+    );
+  }
+
   return (
     <div className="productos-lista">
       {productos.map((producto) => (
         <Card key={producto.id} className="producto-card">
-          {/* Imagen */}
-          <Image
-            src={producto.imagen}
-            alt={producto.nombre}
-            className="producto-imagen"
-            preview={false}
-          />
+          {/* Icono según nombre del producto */}
+          <div className="producto-icono">
+            {obtenerIcono(producto.nombre)}
+          </div>
 
-          {/* Precio debajo de la imagen */}
-          <div className="producto-precio">${producto.precio}</div>
+          {/* Precio debajo del icono */}
+          <div className="producto-precio">${producto.precioUnitario}</div>
 
           {/* Nombre */}
           <h3 className="producto-nombre">{producto.nombre}</h3>
