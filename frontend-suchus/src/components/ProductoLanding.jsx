@@ -91,16 +91,18 @@ const ProductoLanding = () => {
         </p>
         
         <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '2rem',
-          marginBottom: '3rem'
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '1.5rem',
+          justifyContent: 'center',
+          marginBottom: '2rem'
         }}>
           {productos.map((producto) => (
             <Card 
               key={producto.id}
               hoverable
               style={{ 
+                width: '250px',
                 textAlign: 'center',
                 borderRadius: '10px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -134,12 +136,20 @@ const ProductoLanding = () => {
             size="large"
             onClick={() => navigate('/login')}
             style={{
-              backgroundColor: '#333',
-              borderColor: '#333',
+              backgroundColor: '#1890ff',
+              borderColor: '#1890ff',
               padding: '0.8rem 2rem',
               height: 'auto',
               fontSize: '1.1rem',
               fontWeight: 'bold'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#0056b3';
+              e.target.style.borderColor = '#0056b3';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#1890ff';
+              e.target.style.borderColor = '#1890ff';
             }}
           >
             Ver todos los productos

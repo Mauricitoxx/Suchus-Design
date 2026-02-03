@@ -1,7 +1,10 @@
 import React from "react";
+import { Card } from 'antd';
+import { PrinterOutlined, ScanOutlined, FileProtectOutlined, ShoppingCartOutlined, FileAddOutlined, UserAddOutlined, MailOutlined, WhatsAppOutlined, PhoneOutlined, RobotOutlined } from '@ant-design/icons';
 import Navbar from "./Navbar";
 import Chatbot from "../components/Chatbot";
 import ProductoLanding from "../components/ProductoLanding";
+import ImpresionLanding from "../components/ImpresionLanding";
 import "../assets/style/LandingPage.css";
 import imagen1 from "./ImagenFondo1.jpg"; // Asegúrate que la ruta es correcta (case-sensitive for deployment)
 
@@ -71,42 +74,278 @@ const LandingPage = () => {
       {/* --- El resto de secciones vuelven a tener su fondo normal --- */}
 
       {/* Services Section */}
-      <section id="services" className="services-section">
-        <h2>Nuestros Servicios</h2>
-        <div className="services-cards">
-          <div className="card">
-            <h3>Impresión</h3>
-            <p>Blanco y negro, color, tamaños y formatos diversos.</p>
-          </div>
-          <div className="card">
-            <h3>Escaneo y Digitalización</h3>
-            <p>Transformá tus documentos físicos en digitales con facilidad.</p>
-          </div>
-          <div className="card">
-            <h3>Plastificado y Encuadernado</h3>
-            <p>Protegé y presentá tus trabajos de forma profesional.</p>
-          </div>
+      <section id="services" style={{ padding: '60px 20px', backgroundColor: '#f9f9f9' }}>
+        <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '10px', color: '#333' }}>
+          Nuestros Servicios
+        </h2>
+        <p style={{ textAlign: 'center', color: '#666', marginBottom: '40px', fontSize: '1.1rem' }}>
+          Ofrecemos soluciones completas para todas tus necesidades
+        </p>
+        
+        <div style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: '24px', 
+          justifyContent: 'center',
+          maxWidth: '1200px',
+          margin: '0 auto'
+        }}>
+          <Card
+            hoverable
+            style={{ 
+              width: 300,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}
+            bodyStyle={{ padding: '32px' }}
+          >
+            <PrinterOutlined style={{ fontSize: '60px', color: '#1890ff', marginBottom: '16px' }} />
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', color: '#333' }}>
+              Impresión
+            </h3>
+            <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
+              Blanco y negro, color, tamaños y formatos diversos.
+            </p>
+          </Card>
+
+          <Card
+            hoverable
+            style={{ 
+              width: 300,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}
+            bodyStyle={{ padding: '32px' }}
+          >
+            <ScanOutlined style={{ fontSize: '60px', color: '#52c41a', marginBottom: '16px' }} />
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', color: '#333' }}>
+              Escaneo y Digitalización
+            </h3>
+            <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
+              Transformá tus documentos físicos en digitales con facilidad.
+            </p>
+          </Card>
+
+          <Card
+            hoverable
+            style={{ 
+              width: 300,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}
+            bodyStyle={{ padding: '32px' }}
+          >
+            <FileProtectOutlined style={{ fontSize: '60px', color: '#fa8c16', marginBottom: '16px' }} />
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', color: '#333' }}>
+              Plastificado y Encuadernado
+            </h3>
+            <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
+              Protegé y presentá tus trabajos de forma profesional.
+            </p>
+          </Card>
         </div>
       </section>
+
+      {/* Impresiones Section */}
+      <ImpresionLanding />
 
       {/* Products Section */}
       <ProductoLanding />
 
       {/* Orders Section */}
-      <section id="orders" className="orders-section">
-        <h2>Realizá tu Pedido</h2>
-        <p>Registrate y subí tus archivos o seleccioná los productos que necesites.</p>
-        <a href="/Login" className="btn-secondary">Iniciar Sesión / Registrarse</a>
+      <section id="orders" style={{ padding: '60px 20px', backgroundColor: '#f9f9f9' }}>
+        <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '10px', color: '#333' }}>
+          Realizá tu Pedido
+        </h2>
+        <p style={{ textAlign: 'center', color: '#666', marginBottom: '40px', fontSize: '1.1rem' }}>
+          Registrate y comenzá a gestionar tus pedidos en simples pasos
+        </p>
+        
+        <div style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: '24px', 
+          justifyContent: 'center',
+          maxWidth: '1000px',
+          margin: '0 auto 40px'
+        }}>
+          <Card
+            hoverable
+            style={{ 
+              width: 280,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}
+            bodyStyle={{ padding: '32px' }}
+          >
+            <UserAddOutlined style={{ fontSize: '60px', color: '#52c41a', marginBottom: '16px' }} />
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', color: '#333' }}>
+              1. Registrate
+            </h3>
+            <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
+              Creá tu cuenta en pocos segundos y accedé a todos nuestros servicios.
+            </p>
+          </Card>
+
+          <Card
+            hoverable
+            style={{ 
+              width: 280,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}
+            bodyStyle={{ padding: '32px' }}
+          >
+            <FileAddOutlined style={{ fontSize: '60px', color: '#1890ff', marginBottom: '16px' }} />
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', color: '#333' }}>
+              2. Subí tus archivos
+            </h3>
+            <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
+              Cargá los documentos que querés imprimir o elegí productos de papelería.
+            </p>
+          </Card>
+
+          <Card
+            hoverable
+            style={{ 
+              width: 280,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}
+            bodyStyle={{ padding: '32px' }}
+          >
+            <ShoppingCartOutlined style={{ fontSize: '60px', color: '#fa8c16', marginBottom: '16px' }} />
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', color: '#333' }}>
+              3. Confirmá tu pedido
+            </h3>
+            <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
+              Revisá tu pedido, elegí la forma de pago y retirá en nuestra sucursal.
+            </p>
+          </Card>
+        </div>
+
+        <div style={{ textAlign: 'center' }}>
+          <a 
+            href="/Login" 
+            style={{
+              display: 'inline-block',
+              padding: '12px 40px',
+              backgroundColor: '#1890ff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              textDecoration: 'none',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              transition: 'background-color 0.3s'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#0056b3'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = '#1890ff'}
+          >
+            Iniciar Sesión / Registrarse
+          </a>
+        </div>
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="contact-section">
-        <h2>Contacto</h2>
-        <p>¿Consultas rápidas? Hablá con nuestro asistente virtual o contactanos directamente.</p>
-        <div className="contact-methods">
-          <p>Email: contacto@suchuscopy.com</p>
-          <p>WhatsApp: +54 9 221 123-4567</p>
-          <p>Teléfono: 221-123-4567</p>
+      <section id="contact" style={{ padding: '60px 20px', backgroundColor: '#f9f9f9' }}>
+        <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '10px', color: '#333' }}>
+          Contacto
+        </h2>
+        <p style={{ textAlign: 'center', color: '#666', marginBottom: '40px', fontSize: '1.1rem' }}>
+          ¿Tenés consultas? Usá nuestro chatbot o contactanos directamente
+        </p>
+        
+        <div style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: '24px', 
+          justifyContent: 'center',
+          maxWidth: '1200px',
+          margin: '0 auto'
+        }}>
+          <Card
+            hoverable
+            style={{ 
+              width: 260,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}
+            bodyStyle={{ padding: '32px' }}
+          >
+            <RobotOutlined style={{ fontSize: '60px', color: '#722ed1', marginBottom: '16px' }} />
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', color: '#333' }}>
+              Chatbot
+            </h3>
+            <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
+              Asistente virtual disponible 24/7 en la esquina inferior derecha
+            </p>
+          </Card>
+
+          <Card
+            hoverable
+            style={{ 
+              width: 260,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}
+            bodyStyle={{ padding: '32px' }}
+          >
+            <MailOutlined style={{ fontSize: '60px', color: '#1890ff', marginBottom: '16px' }} />
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', color: '#333' }}>
+              Email
+            </h3>
+            <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
+              contacto@suchuscopy.com
+            </p>
+          </Card>
+
+          <Card
+            hoverable
+            style={{ 
+              width: 260,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}
+            bodyStyle={{ padding: '32px' }}
+          >
+            <WhatsAppOutlined style={{ fontSize: '60px', color: '#25D366', marginBottom: '16px' }} />
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', color: '#333' }}>
+              WhatsApp
+            </h3>
+            <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
+              +54 9 221 123-4567
+            </p>
+          </Card>
+
+          <Card
+            hoverable
+            style={{ 
+              width: 260,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}
+            bodyStyle={{ padding: '32px' }}
+          >
+            <PhoneOutlined style={{ fontSize: '60px', color: '#fa8c16', marginBottom: '16px' }} />
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', color: '#333' }}>
+              Teléfono
+            </h3>
+            <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
+              221-123-4567
+            </p>
+          </Card>
         </div>
       </section>
 
