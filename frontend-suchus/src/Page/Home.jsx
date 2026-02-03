@@ -4,36 +4,32 @@ import { Link } from "react-router-dom";
 import CardImpresion from "../components/CardImpresion";
 import CardProducto from "../components/CardProducto";
 
+// imágenes
+import logo from "../../media/logo.png";
+import brand from "../../media/nombre.png";
+
 const Home = () => {
   return (
     <div className="home-container">
       {/* Header */}
       <header className="home-header">
-        <div className="header-content">
-          <h1>Suchus Design</h1>
-          <p>Diseño gráfico, impresión y mucho más...</p>
+        <div className="header-inner">
+          <img src={logo} alt="Logo Suchus" className="logo" />
+          <img src={brand} alt="Suchus Copy and Design" className="brand" />
         </div>
       </header>
 
       {/* Menú de navegación */}
       <nav className="home-menu">
         <ul>
-          <li>
-            <Link to="/perfil">Perfil</Link>
-          </li>
-          <li>
-            <Link to="/servicios">Servicios</Link>
-          </li>
-          <li>
-            <Link to="/contacto">Contacto</Link>
-          </li>
-          <li>
-            <Link to="/">Cerrar sesión</Link>
-          </li>
+          <li><Link to="/perfil">Perfil</Link></li>
+          <li><Link to="/servicios">Servicios</Link></li>
+          <li><Link to="/contacto">Contacto</Link></li>
+          <li><Link to="/">Cerrar sesión</Link></li>
         </ul>
       </nav>
 
-      {/* Contenido de la página de inicio */}
+      {/* Contenido */}
       <section className="home-content">
         <h2>Selecciona una opción del menú</h2>
         <CardImpresion />
@@ -52,9 +48,9 @@ const Home = () => {
           <div className="social-media">
             <h3>Síguenos</h3>
             <ul>
-              <li><a href="https://facebook.com" target="_blank" rel="noopener noreferrer">Facebook</a></li>
-              <li><a href="https://twitter.com" target="_blank" rel="noopener noreferrer">Twitter</a></li>
-              <li><a href="https://instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+              <li><a href="https://facebook.com" target="_blank" rel="noreferrer">Facebook</a></li>
+              <li><a href="https://twitter.com" target="_blank" rel="noreferrer">Twitter</a></li>
+              <li><a href="https://instagram.com" target="_blank" rel="noreferrer">Instagram</a></li>
             </ul>
           </div>
         </div>

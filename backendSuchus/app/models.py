@@ -32,6 +32,7 @@ class Pedido (models.Model):
     estado= models.CharField(max_length=100, choices=ESTADO, default="En revisión")
     observacion=models.TextField(null=True, blank=True)
     total=models.FloatField(null=False)
+    fecha = models.DateField(auto_now_add=True)
     fk_usuario=models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
 class Producto (models.Model):

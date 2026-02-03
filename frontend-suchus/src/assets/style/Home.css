@@ -6,35 +6,73 @@
   padding: 20px;
 }
 
-.home-header,
-.home-footer {
+
+
+/* Header */
+.home-header {
   width: 100%;
-  background-color: #282c34; /* Color común para header y footer */
-  color: #fff;
-  padding: 40px 0;
-  text-align: center;
+  background-color: #282c34;
+  padding: 30px 20px;
+}
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* centra el contenido inicialmente */
+  position: relative;      /* necesario para centrar el nombre */
+  height: 120px;
+  gap: 40px;
 }
 
-/* Estilo del header */
-.header-content h1 {
-  font-size: 36px;
-  margin-bottom: 10px;
+/* Imagen del nombre centrada */
+.brand {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-.header-content p {
-  font-size: 18px;
-  font-style: italic;
+/* Logo a la derecha */
+.header-logo {
+  margin-left: auto;  /* empuja el logo al extremo derecho */
 }
 
-/* Estilo del menú */
+
+/* Logo */
+/* Corazón a la derecha */
+/* Logo a la izquierda */
+.logo {
+  height: 120px;
+  object-fit: contain;
+  position: absolute;
+  left:0% /* se asegura que quede al inicio */
+}
+
+/* Nombre centrado y más grande */
+.brand {
+  height: auto;           /* que el alto se ajuste según font-size si es texto, o mantener la imagen */
+  max-height: 120px;      /* máximo tamaño */
+  object-fit: contain;
+  position: absolute;     /* permite centrarlo sin mover el logo */
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+
+/* Menú sticky */
 .home-menu {
-  margin-top: 20px;
   width: 100%;
+  margin-top: 20px;
+  position: sticky;
+  top: 0;
+  background-color: #282c34;
+  z-index: 1000;
 }
 
 .home-menu ul {
   list-style-type: none;
-  padding: 0;
+  padding: 10px 0;
+  margin: 0;
   text-align: center;
 }
 
@@ -45,7 +83,7 @@
 
 .home-menu a {
   text-decoration: none;
-  color: #007bff;
+  color: #fff;
   font-size: 18px;
 }
 
@@ -53,27 +91,32 @@
   text-decoration: underline;
 }
 
-/* Estilos del contenido */
+/* Contenido */
 .home-content {
   margin-top: 40px;
   width: 80%;
   text-align: center;
 }
 
-/* Estilo del footer */
+/* Footer */
+.home-footer {
+  width: 100%;
+  background-color: #282c34;
+  color: #fff;
+  padding: 40px 0;
+  text-align: center;
+}
+
 .footer-content {
   display: flex;
   justify-content: space-around;
   margin-bottom: 20px;
 }
 
-.contact-info, .social-media {
+.contact-info,
+.social-media {
   width: 45%;
   text-align: left;
-}
-
-.contact-info p, .social-media ul {
-  font-size: 16px;
 }
 
 .social-media ul {
@@ -81,21 +124,7 @@
   padding: 0;
 }
 
-.social-media li {
-  margin: 5px 0;
-}
-
 .social-media a {
-  text-decoration: none;
   color: #007bff;
-}
-
-.social-media a:hover {
-  text-decoration: underline;
-}
-
-/* Derechos de autor */
-.home-footer p {
-  font-size: 14px;
-  color: #fff;
+  text-decoration: none;
 }
