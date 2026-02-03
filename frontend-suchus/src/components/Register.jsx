@@ -77,116 +77,120 @@ const Register = () => {
 
     return (
         <>
-            <div className="header">
-                <h1>
-                    <Link to="/" className="header-link">Suchus Copy & Design</Link>
-                </h1>
-            </div>
-            <div className="register-container">
-                <h2>Registrarse</h2>
-                <div className="formulario">
-                    <form onSubmit={handleSubmit}>
-                        {error && (
-                            <div style={{
-                                color: "red",
-                                marginBottom: "15px",
-                                padding: "10px",
-                                backgroundColor: "#ffe6e6",
-                                borderRadius: "5px"
-                            }}>
-                                {error}
-                            </div>
-                        )}
-                        
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label htmlFor="nombre">Nombre *</label>
-                                <input 
-                                    type="text" 
-                                    id="nombre" 
-                                    placeholder="Ingrese su nombre"
-                                    value={formData.nombre}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="apellido">Apellido *</label>
-                                <input 
-                                    type="text" 
-                                    id="apellido" 
-                                    placeholder="Ingrese su apellido"
-                                    value={formData.apellido}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
-                        </div>
-                        
-                        <div className="form-group">
-                            <label htmlFor="email">Email *</label>
-                            <input 
-                                type="email" 
-                                id="email" 
-                                placeholder="Ingrese su correo electrónico"
-                                value={formData.email}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                        
-                        <div className="form-group">
-                            <label htmlFor="telefono">Teléfono</label>
-                            <input 
-                                type="tel" 
-                                id="telefono" 
-                                placeholder="Ingrese su número de teléfono"
-                                value={formData.telefono}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        
-                        <div className="form-group">
-                            <label htmlFor="password">Contraseña *</label>
-                            <input 
-                                type="password" 
-                                id="password" 
-                                placeholder="Cree una contraseña (mín. 6 caracteres)"
-                                value={formData.password}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                        
-                        <div className="form-group">
-                            <label htmlFor="confirmPassword">Confirme su contraseña *</label>
-                            <input 
-                                type="password" 
-                                id="confirmPassword" 
-                                placeholder="Confirme su contraseña"
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                        
-                        <button 
-                            type="submit" 
-                            className="btn-register"
-                            disabled={loading}
-                        >
-                            {loading ? "Creando cuenta..." : "Crear Cuenta"}
-                        </button>
-                        
-                        <p style={{ marginTop: "15px", textAlign: "center" }}>
-                            ¿Ya tienes cuenta? <Link to="/login" style={{ color: "#007bff" }}>Inicia sesión</Link>
-                        </p>
-                    </form>
+            <div className="register-page">
+                <div className="header">
+                    <h1>
+                        <Link to="/" className="header-link">Suchus Copy & Design</Link>
+                    </h1>
                 </div>
+                <div className="register-container">
+                    <h2>Registrarse</h2>
+                    <div className="formulario">
+                        <form onSubmit={handleSubmit}>
+                            {error && (
+                                <div className="error-message">
+                                    {error}
+                                </div>
+                            )}
+                            
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="nombre">Nombre</label>
+                                    <input 
+                                        type="text" 
+                                        id="nombre" 
+                                        placeholder="Ingrese su nombre"
+                                        value={formData.nombre}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="apellido">Apellido</label>
+                                    <input 
+                                        type="text" 
+                                        id="apellido" 
+                                        placeholder="Ingrese su apellido"
+                                        value={formData.apellido}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="form-group">
+                                <label htmlFor="email">Correo electrónico</label>
+                                <input 
+                                    type="email" 
+                                    id="email" 
+                                    placeholder="Ingrese su correo"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+                            
+                            <div className="form-group">
+                                <label htmlFor="telefono">Teléfono</label>
+                                <input 
+                                    type="tel" 
+                                    id="telefono" 
+                                    placeholder="Ingrese su número de teléfono"
+                                    value={formData.telefono}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            
+                            <div className="form-group">
+                                <label htmlFor="password">Contraseña</label>
+                                <input 
+                                    type="password" 
+                                    id="password" 
+                                    placeholder="Ingrese su contraseña"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+                            
+                            <div className="form-group">
+                                <label htmlFor="confirmPassword">Confirmar contraseña</label>
+                                <input 
+                                    type="password" 
+                                    id="confirmPassword" 
+                                    placeholder="Confirme su contraseña"
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+                            
+                            <button 
+                                type="submit" 
+                                className="btn-register"
+                                disabled={loading}
+                            >
+                                {loading ? "Creando cuenta..." : "Crear Cuenta"}
+                            </button>
+                            
+                            <div className="divider">
+                                <span>o</span>
+                            </div>
+                            
+                            <button 
+                                type="button" 
+                                className="btn-login"
+                                onClick={() => navigate('/login')}
+                            >
+                                Iniciar Sesión
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <footer className="footer">
+                    <p>© 2025 Suchus Copy & Design. Todos los derechos reservados.</p>
+                </footer>
             </div>
-            <footer className="footer">
-                <p>© 2025 Suchus Copy & Design. Todos los derechos reservados.</p>
-            </footer>
         </>
     )
 }
