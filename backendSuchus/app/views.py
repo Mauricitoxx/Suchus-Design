@@ -525,33 +525,6 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
-        # Verificar si intenta crear un Admin
-        tipo_usuario_id = serializer.validated_data.get('usuarioTipo')
-        tipo_usuario = UsuarioTipo.objects.get(id=tipo_usuario_id.id)
-        
-        if tipo_usuario.descripcion.lower() == 'admin':
-            # Verificar si el usuario que crea es Admin
-            usuario_id = request.data.get('usuario_actual_id')
-            if not usuario_id:
-                return Response(
-                    {"error": "Se requiere usuario_actual_id para crear Admins"},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            
-            try:
-                usuario_actual = Usuario.objects.get(id=usuario_id, activo=True)
-                if not usuario_actual.es_admin():
-                    return Response(
-                        {"error": "Solo los Admins pueden crear otros Admins"},
-                        status=status.HTTP_403_FORBIDDEN
-                    )
-            except Usuario.DoesNotExist:
-                return Response(
-                    {"error": "Usuario actual no válido"},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(

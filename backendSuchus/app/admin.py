@@ -10,6 +10,15 @@ class UsuarioAdmin(admin.ModelAdmin):
     search_fields = ('email', 'nombre', 'apellido', 'telefono')
     readonly_fields = ('created_at', 'updated_at')
     list_per_page = 20
+    
+    def save_model(self, request, obj, form, change):
+        # Si es un nuevo usuario o si la contraseña ha cambiado
+        if not change or 'contraseña' in form.changed_data:
+            # Hashear la contraseña si no está hasheada
+            if obj.contraseña and not obj.contraseña.startswith('pbkdf2_'):
+                from django.contrib.auth.hashers import make_password
+                obj.contraseña = make_password(obj.contraseña)
+        super().save_model(request, obj, form, change)
 
 @admin.register(UsuarioTipo)
 class UsuarioTipoAdmin(admin.ModelAdmin):

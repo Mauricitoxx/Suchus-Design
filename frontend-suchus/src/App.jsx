@@ -5,6 +5,7 @@ import Register from "./components/Register"
 import LandingPage  from './Page/LandingPage';
 import Home from "./Page/Home";
 import Perfil from "./Page/PerfilMenu";
+import UsuariosAdmin from "./components/Admin/UsuariosAdmin";
 function App() {
 
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/home" element={<Home />} />
         <Route path="/perfil" element={<Perfil />} />
+        <Route path="/admin/usuarios" element={<UsuariosAdmin />} />
       </Routes>
     </Router>
   )

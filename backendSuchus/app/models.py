@@ -7,7 +7,6 @@ class UsuarioTipo(models.Model):
     def __str__(self):
         return self.descripcion
 
-
 class Usuario(models.Model):
     email = models.EmailField(unique=True)
     contraseña = models.CharField(max_length=128, null=False)
