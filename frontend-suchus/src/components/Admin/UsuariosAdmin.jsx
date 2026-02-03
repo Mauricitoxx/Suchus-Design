@@ -55,7 +55,13 @@ const UsuariosAdmin = () => {
   const handleSave = async (values) => {
     try {
       if (editingUser) {
-        await usuariosAPI.update(editingUser.id, values);
+        // Transformar usuarioTipo a tipo_usuario para el backend
+        const updateData = {
+          ...values,
+          tipo_usuario: values.usuarioTipo,
+        };
+        delete updateData.usuarioTipo;
+        await usuariosAPI.update(editingUser.id, updateData);
         message.success('Usuario actualizado correctamente');
       } else {
         const createData = {

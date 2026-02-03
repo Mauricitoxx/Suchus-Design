@@ -74,10 +74,11 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
     contraseña_actual = serializers.CharField(write_only=True, required=False)
     contraseña_nueva = serializers.CharField(write_only=True, required=False, min_length=6)
     confirmar_contraseña = serializers.CharField(write_only=True, required=False)
+    tipo_usuario = serializers.CharField(required=False)
     
     class Meta:
         model = Usuario
-        fields = ['email', 'nombre', 'apellido', 'telefono', 
+        fields = ['email', 'nombre', 'apellido', 'telefono', 'tipo_usuario',
                   'contraseña_actual', 'contraseña_nueva', 'confirmar_contraseña']
     
     def validate_email(self, value):
@@ -115,6 +116,17 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
         validated_data.pop('contraseña_actual', None)
         validated_data.pop('confirmar_contraseña', None)
         contraseña_nueva = validated_data.pop('contraseña_nueva', None)
+        
+        # Manejar el cambio de tipo de usuario
+        tipo_usuario = validated_data.pop('tipo_usuario', None)
+        if tipo_usuario:
+            try:
+                usuario_tipo_obj = UsuarioTipo.objects.get(descripcion=tipo_usuario)
+                instance.usuarioTipo = usuario_tipo_obj
+            except UsuarioTipo.DoesNotExist:
+                raise serializers.ValidationError({
+                    "tipo_usuario": f"El tipo de usuario '{tipo_usuario}' no existe"
+                })
         
         # Si hay contraseña nueva, hashearla
         if contraseña_nueva:

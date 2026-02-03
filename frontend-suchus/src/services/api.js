@@ -2,7 +2,7 @@ import axios from 'axios';
 import authService from './auth';
 
 // TODO: Reemplazar con la URL del backend en producción
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/app/';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/';
 
 // Crear instancia de axios con configuración base
 const api = axios.create({
@@ -120,6 +120,16 @@ const productosAPI = {
     }
   },
 
+  // Actualizar precio
+  actualizarPrecio: async (id, data) => {
+    try {
+      const response = await api.patch(`productos/${id}/actualizar_precio/`, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
   // Productos activos
   activos: async (params = {}) => {
     try {
@@ -177,7 +187,7 @@ const usuariosAPI = {
   // Cambiar contraseña
   cambiarPassword: async (id, data) => {
     try {
-      const response = await api.post(`usuarios/${id}/cambiar_password/`, data);
+      const response = await api.post(`usuarios/${id}/cambiar_contraseña/`, data);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
