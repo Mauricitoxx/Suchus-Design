@@ -5,7 +5,10 @@ import Register from "./components/Register"
 import LandingPage  from './Page/LandingPage';
 import Home from "./Page/Home";
 import Perfil from "./Page/PerfilMenu";
+import Admin from "./components/Admin/Admin";
 import UsuariosAdmin from "./components/Admin/UsuariosAdmin";
+import ProductosAdmin from "./components/Admin/ProductosAdmin";
+import NotFound from "./Page/NotFound";
 function App() {
 
   return (
@@ -16,7 +19,10 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/home" element={<Home />} />
         <Route path="/perfil" element={<Perfil />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="/admin/usuarios" element={<UsuariosAdmin />} />
+        <Route path="/admin/productos" element={<ProductosAdmin />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   )

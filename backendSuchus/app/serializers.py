@@ -6,6 +6,17 @@ class UsuarioRegisterSerializer(serializers.ModelSerializer):
         model = Usuario
         fields = ["email", "contraseña", "nombre", "apellido", "telefono"]
 
+    def validate_telefono(self, value):
+        if value:  # Solo validar si se proporciona un teléfono
+            import re
+            # Verificar que solo contenga números
+            if not re.match(r'^[0-9]+$', value):
+                raise serializers.ValidationError("El teléfono solo debe contener números")
+            # Verificar longitud
+            if len(value) < 8 or len(value) > 15:
+                raise serializers.ValidationError("El teléfono debe tener entre 8 y 15 dígitos")
+        return value
+
     def create(self, validated_data):
         from django.contrib.auth.hashers import make_password
         validated_data['contraseña'] = make_password(validated_data['contraseña'])
@@ -52,6 +63,17 @@ class UsuarioCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Ya existe un usuario con ese mail.")
         return value
     
+    def validate_telefono(self, value):
+        if value:  # Solo validar si se proporciona un teléfono
+            import re
+            # Verificar que solo contenga números
+            if not re.match(r'^[0-9]+$', value):
+                raise serializers.ValidationError("El teléfono solo debe contener números")
+            # Verificar longitud
+            if len(value) < 8 or len(value) > 15:
+                raise serializers.ValidationError("El teléfono debe tener entre 8 y 15 dígitos")
+        return value
+    
     def validate(self, data):
         if data['contraseña'] != data['confirmar_contraseña']:
             raise serializers.ValidationError({
@@ -74,16 +96,28 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
     contraseña_actual = serializers.CharField(write_only=True, required=False)
     contraseña_nueva = serializers.CharField(write_only=True, required=False, min_length=6)
     confirmar_contraseña = serializers.CharField(write_only=True, required=False)
+    tipo_usuario = serializers.CharField(required=False)
     
     class Meta:
         model = Usuario
-        fields = ['email', 'nombre', 'apellido', 'telefono', 
+        fields = ['email', 'nombre', 'apellido', 'telefono', 'tipo_usuario',
                   'contraseña_actual', 'contraseña_nueva', 'confirmar_contraseña']
     
     def validate_email(self, value):
         usuario = self.instance
         if Usuario.objects.exclude(pk=usuario.pk).filter(email=value).exists():
             raise serializers.ValidationError("Este email ya está en uso por otro usuario")
+        return value
+    
+    def validate_telefono(self, value):
+        if value:  # Solo validar si se proporciona un teléfono
+            import re
+            # Verificar que solo contenga números
+            if not re.match(r'^[0-9]+$', value):
+                raise serializers.ValidationError("El teléfono solo debe contener números")
+            # Verificar longitud
+            if len(value) < 8 or len(value) > 15:
+                raise serializers.ValidationError("El teléfono debe tener entre 8 y 15 dígitos")
         return value
     
     def validate(self, data):
@@ -115,6 +149,17 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
         validated_data.pop('contraseña_actual', None)
         validated_data.pop('confirmar_contraseña', None)
         contraseña_nueva = validated_data.pop('contraseña_nueva', None)
+        
+        # Manejar el cambio de tipo de usuario
+        tipo_usuario = validated_data.pop('tipo_usuario', None)
+        if tipo_usuario:
+            try:
+                usuario_tipo_obj = UsuarioTipo.objects.get(descripcion=tipo_usuario)
+                instance.usuarioTipo = usuario_tipo_obj
+            except UsuarioTipo.DoesNotExist:
+                raise serializers.ValidationError({
+                    "tipo_usuario": f"El tipo de usuario '{tipo_usuario}' no existe"
+                })
         
         # Si hay contraseña nueva, hashearla
         if contraseña_nueva:

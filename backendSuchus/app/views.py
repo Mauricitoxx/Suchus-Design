@@ -58,6 +58,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 'id': user.id,
                 'email': user.email,
                 'nombre': user.nombre,
+                'apellido': user.apellido,
                 'tipo': user.usuarioTipo.descripcion,
             }
         }
@@ -573,14 +574,12 @@ class UsuarioViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN
                 )
         
-        # Baja lógica
-        usuario.activo = False
-        usuario.save()
+        # Eliminación permanente
+        usuario.delete()
         
         return Response({
-            "mensaje": "Usuario desactivado correctamente",
-            "usuario": UsuarioSerializer(usuario).data
-        })
+            "mensaje": "Usuario eliminado correctamente"
+        }, status=status.HTTP_204_NO_CONTENT)
     
     @action(detail=True, methods=['post'])
     def desactivar(self, request, pk=None):

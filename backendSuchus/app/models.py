@@ -31,27 +31,18 @@ class Pedido(models.Model):
         ("En proceso", "en proceso"),
         ("Preparado", "preparado"),
         ("Retirado", "retirado"),
-<<<<<<< HEAD
-        ("Cancelado","cancelado")
-        ]
-    estado= models.CharField(max_length=100, choices=ESTADO, default="En revisión")
-    observacion=models.TextField(null=True, blank=True)
-    total=models.FloatField(null=False)
-    fecha = models.DateField(auto_now_add=True)
-    fk_usuario=models.ForeignKey(Usuario, on_delete=models.CASCADE)
-=======
         ("Cancelado", "cancelado")
     ]
     estado = models.CharField(max_length=100, choices=ESTADO, default="En revisión")
     observacion = models.TextField(null=True, blank=True)
     total = models.FloatField(null=False)
+    fecha = models.DateField(auto_now_add=True)
     fk_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     
     def __str__(self):
         return f"Pedido #{self.id} - {self.fk_usuario.nombre}"
->>>>>>> 7aa8fe51ea513b110d917341672948a1e54210cc
 
 
 class Producto(models.Model):
@@ -66,7 +57,7 @@ class Producto(models.Model):
         return self.nombre
     
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['id']
 
 
 class Impresion(models.Model):
@@ -135,5 +126,4 @@ class Pago(models.Model):
     
     def __str__(self):
         return f"Pago {self.id} - {self.estado}"
-    fk_pedido=models.ForeignKey(Pedido, on_delete=models.CASCADE)
 

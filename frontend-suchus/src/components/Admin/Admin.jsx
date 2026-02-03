@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Input, List, Modal, message, Spin } from "antd";
+import { Card, Button, Row, Col, Input, Modal, message, Spin } from "antd";
+import { UserOutlined, ShoppingOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import authService from "../services/auth";
-import { pedidosAPI } from "../services/api";
+import authService from "../../services/auth";
 
-const PerfilMenu = () => {
+const Admin = () => {
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -12,36 +12,18 @@ const PerfilMenu = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [pedidos, setPedidos] = useState([]);
-  const [loadingPedidos, setLoadingPedidos] = useState(false);
 
   useEffect(() => {
     // Obtener datos del usuario al cargar el componente
     const currentUser = authService.getCurrentUser();
     if (currentUser) {
       setUser(currentUser);
-      fetchPedidos(currentUser.id);
     } else {
       message.error('No hay sesión iniciada');
       navigate('/login');
     }
     setLoading(false);
   }, [navigate]);
-
-  const fetchPedidos = async (usuarioId) => {
-    setLoadingPedidos(true);
-    try {
-      const data = await pedidosAPI.getAll({ usuario_id: usuarioId });
-      const pedidosArray = data.results || data;
-      setPedidos(Array.isArray(pedidosArray) ? pedidosArray : []);
-    } catch (error) {
-      console.error('Error al cargar pedidos:', error);
-      message.error('Error al cargar el historial de pedidos');
-      setPedidos([]);
-    } finally {
-      setLoadingPedidos(false);
-    }
-  };
 
   const handleChangePassword = () => {
     setVisible(true);
@@ -141,29 +123,41 @@ const PerfilMenu = () => {
         </div>
       </Modal>
 
-      <Card title="Historial de pedidos" bordered style={{ marginTop: 24 }}>
-        <Spin spinning={loadingPedidos}>
-          {pedidos.length > 0 ? (
-            <List
-              dataSource={pedidos}
-              renderItem={item => (
-                <List.Item>
-                  <List.Item.Meta
-                    title={`Pedido #${item.id}`}
-                    description={`Fecha: ${new Date(item.created_at || item.fecha_pedido).toLocaleDateString('es-AR')} | Estado: ${item.estado}`}
-                  />
-                </List.Item>
-              )}
-            />
-          ) : (
-            <p style={{ textAlign: 'center', color: '#999', padding: '20px 0' }}>
-              No hay pedidos en tu historial
-            </p>
-          )}
-        </Spin>
+      <Card title="Panel de Administración" bordered style={{ marginTop: 24 }}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12}>
+            <Card
+              hoverable
+              onClick={() => navigate("/admin/usuarios")}
+              style={{ textAlign: "center", height: "100%" }}
+            >
+              <UserOutlined style={{ fontSize: 48, color: "#1890ff", marginBottom: 16 }} />
+              <h3>Gestión de Usuarios</h3>
+              <p>Administra usuarios, permisos y accesos</p>
+              <Button type="primary" size="large" style={{ marginTop: 16 }}>
+                Ir a Usuarios
+              </Button>
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12}>
+            <Card
+              hoverable
+              onClick={() => navigate("/admin/productos")}
+              style={{ textAlign: "center", height: "100%" }}
+            >
+              <ShoppingOutlined style={{ fontSize: 48, color: "#52c41a", marginBottom: 16 }} />
+              <h3>Gestión de Productos</h3>
+              <p>Administra productos, precios y stock</p>
+              <Button type="primary" size="large" style={{ marginTop: 16 }}>
+                Ir a Productos
+              </Button>
+            </Card>
+          </Col>
+        </Row>
       </Card>
     </div>
   );
 };
 
-export default PerfilMenu;
+export default Admin;

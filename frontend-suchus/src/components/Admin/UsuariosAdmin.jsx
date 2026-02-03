@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Space, Popconfirm, message, Tag, Spin } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, LockOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Input, Select, Space, Popconfirm, message, Tag, Spin, Card } from 'antd';
+import { EditOutlined, DeleteOutlined, PlusOutlined, LockOutlined, SearchOutlined } from '@ant-design/icons';
 import { usuariosAPI } from '../../services/api';
 
 const { Option } = Select;
@@ -11,6 +11,7 @@ const UsuariosAdmin = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [searchText, setSearchText] = useState('');
   const [form] = Form.useForm();
   const [passwordForm] = Form.useForm();
 
@@ -55,7 +56,13 @@ const UsuariosAdmin = () => {
   const handleSave = async (values) => {
     try {
       if (editingUser) {
-        await usuariosAPI.update(editingUser.id, values);
+        // Transformar usuarioTipo a tipo_usuario para el backend
+        const updateData = {
+          ...values,
+          tipo_usuario: values.usuarioTipo,
+        };
+        delete updateData.usuarioTipo;
+        await usuariosAPI.update(editingUser.id, updateData);
         message.success('Usuario actualizado correctamente');
       } else {
         const createData = {
@@ -76,11 +83,11 @@ const UsuariosAdmin = () => {
 
   const handleDelete = async (id) => {
     try {
-      await usuariosAPI.desactivar(id);
-      message.success('Usuario desactivado');
+      await usuariosAPI.delete(id);
+      message.success('Usuario eliminado');
       fetchUsuarios();
     } catch (error) {
-      message.error('Error al desactivar: ' + (error.error || error.message || 'Error desconocido'));
+      message.error('Error al eliminar: ' + (error.error || error.message || 'Error desconocido'));
       console.error('Error:', error);
     }
   };
@@ -124,11 +131,14 @@ const UsuariosAdmin = () => {
       dataIndex: 'id',
       key: 'id',
       width: 70,
+      sorter: (a, b) => a.id - b.id,
+      defaultSortOrder: 'ascend',
     },
     {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
+      sorter: (a, b) => (a.email || '').localeCompare(b.email || ''),
     },
     {
       title: 'Nombre',
@@ -154,6 +164,7 @@ const UsuariosAdmin = () => {
           {tipo}
         </Tag>
       ),
+      sorter: (a, b) => (a.tipo_usuario || '').localeCompare(b.tipo_usuario || ''),
     },
     {
       title: 'Estado',
@@ -164,6 +175,11 @@ const UsuariosAdmin = () => {
           {activo ? 'Activo' : 'Inactivo'}
         </Tag>
       ),
+      sorter: (a, b) => {
+        const aText = a.activo ? 'Activo' : 'Inactivo';
+        const bText = b.activo ? 'Activo' : 'Inactivo';
+        return aText.localeCompare(bText);
+      },
     },
     {
       title: 'Acciones',
@@ -210,26 +226,57 @@ const UsuariosAdmin = () => {
     },
   ];
 
+  const usuariosFiltrados = usuarios.filter(usuario => 
+    usuario.email.toLowerCase().includes(searchText.toLowerCase())
+  );
+
   return (
     <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Gestión de Usuarios</h1>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          onClick={handleCreate}
-          size="large"
-        >
-          Nuevo Usuario
-        </Button>
-      </div>
+      <Card style={{ marginBottom: '24px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{ marginBottom: '16px' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Gestión de Usuarios</h1>
+          <p style={{ color: '#666', margin: 0 }}>Administra los usuarios del sistema</p>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Input
+            placeholder="Buscar por email..."
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ flex: 1, minWidth: '200px' }}
+            size="large"
+            allowClear
+          />
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={handleCreate}
+            size="large"
+            style={{ fontWeight: 'bold' }}
+          >
+            Nuevo Usuario
+          </Button>
+        </div>
+      </Card>
 
       <Spin spinning={loading}>
         <Table 
           columns={columns} 
-          dataSource={usuarios} 
+          dataSource={usuariosFiltrados} 
           rowKey="id"
-          pagination={{ pageSize: 10 }}
+          pagination={{ 
+            defaultPageSize: 50,
+            showSizeChanger: true,
+            showTotal: (total) => `Total: ${total} usuarios`,
+            pageSizeOptions: ['10', '20', '50', '100']
+          }}
+          scroll={{ x: 'max-content' }}
+          locale={{
+            triggerDesc: 'Click para ordenar descendente',
+            triggerAsc: 'Click para ordenar ascendente',
+            cancelSort: 'Click para cancelar ordenamiento'
+          }}
         />
       </Spin>
 

@@ -2,7 +2,7 @@ import axios from 'axios';
 import authService from './auth';
 
 // TODO: Reemplazar con la URL del backend en producción
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/app/';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/';
 
 // Crear instancia de axios con configuración base
 const api = axios.create({
@@ -103,7 +103,7 @@ const productosAPI = {
   // Activar producto
   activar: async (id) => {
     try {
-      const response = await api.post(`productos/${id}/activar/`);
+      const response = await api.patch(`productos/${id}/activar/`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -113,7 +113,17 @@ const productosAPI = {
   // Desactivar producto
   desactivar: async (id) => {
     try {
-      const response = await api.post(`productos/${id}/desactivar/`);
+      const response = await api.patch(`productos/${id}/desactivar/`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Actualizar precio
+  actualizarPrecio: async (id, data) => {
+    try {
+      const response = await api.patch(`productos/${id}/actualizar_precio/`, data);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -137,7 +147,9 @@ const usuariosAPI = {
   // Listar todos los usuarios
   getAll: async (params = {}) => {
     try {
-      const response = await api.get('usuarios/', { params });
+      // Agregar límite alto para obtener todos los usuarios
+      const queryParams = { ...params, page_size: 1000 };
+      const response = await api.get('usuarios/', { params: queryParams });
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -177,7 +189,7 @@ const usuariosAPI = {
   // Cambiar contraseña
   cambiarPassword: async (id, data) => {
     try {
-      const response = await api.post(`usuarios/${id}/cambiar_password/`, data);
+      const response = await api.post(`usuarios/${id}/cambiar_contraseña/`, data);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -198,6 +210,16 @@ const usuariosAPI = {
   desactivar: async (id) => {
     try {
       const response = await api.post(`usuarios/${id}/desactivar/`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Eliminar usuario
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`usuarios/${id}/`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
