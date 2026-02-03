@@ -31,6 +31,15 @@ class Pedido(models.Model):
         ("En proceso", "en proceso"),
         ("Preparado", "preparado"),
         ("Retirado", "retirado"),
+<<<<<<< HEAD
+        ("Cancelado","cancelado")
+        ]
+    estado= models.CharField(max_length=100, choices=ESTADO, default="En revisión")
+    observacion=models.TextField(null=True, blank=True)
+    total=models.FloatField(null=False)
+    fecha = models.DateField(auto_now_add=True)
+    fk_usuario=models.ForeignKey(Usuario, on_delete=models.CASCADE)
+=======
         ("Cancelado", "cancelado")
     ]
     estado = models.CharField(max_length=100, choices=ESTADO, default="En revisión")
@@ -42,6 +51,7 @@ class Pedido(models.Model):
     
     def __str__(self):
         return f"Pedido #{self.id} - {self.fk_usuario.nombre}"
+>>>>>>> 7aa8fe51ea513b110d917341672948a1e54210cc
 
 
 class Producto(models.Model):
