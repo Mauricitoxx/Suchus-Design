@@ -30,12 +30,6 @@ const Home = () => {
       {/* Menú de navegación */}
       <nav className="home-menu">
         <ul>
-<<<<<<< HEAD
-          <li><Link to="/perfil">Perfil</Link></li>
-          <li><Link to="/servicios">Servicios</Link></li>
-          <li><Link to="/contacto">Contacto</Link></li>
-          <li><Link to="/">Cerrar sesión</Link></li>
-=======
           <li>
             <Link to="/perfil">Perfil</Link>
           </li>
@@ -50,7 +44,6 @@ const Home = () => {
               Cerrar sesión
             </button>
           </li>
->>>>>>> 7aa8fe51ea513b110d917341672948a1e54210cc
         </ul>
       </nav>
 
