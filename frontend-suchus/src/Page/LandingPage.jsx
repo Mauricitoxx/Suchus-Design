@@ -1,6 +1,7 @@
 import React from "react";
 import Navbar from "./Navbar";
 import Chatbot from "../components/Chatbot";
+import ProductoLanding from "../components/ProductoLanding";
 import "../assets/style/LandingPage.css";
 import imagen1 from "./ImagenFondo1.jpg"; // Asegúrate que la ruta es correcta (case-sensitive for deployment)
 
@@ -89,14 +90,7 @@ const LandingPage = () => {
       </section>
 
       {/* Products Section */}
-      <section id="products" className="products-section">
-        <h2>Productos Disponibles</h2>
-        <ul>
-          <li>Hojas y sobres</li>
-          <li>Carpetas y archivadores</li>
-          <li>Materiales gráficos</li>
-        </ul>
-      </section>
+      <ProductoLanding />
 
       {/* Orders Section */}
       <section id="orders" className="orders-section">

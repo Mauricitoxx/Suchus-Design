@@ -103,7 +103,7 @@ const productosAPI = {
   // Activar producto
   activar: async (id) => {
     try {
-      const response = await api.post(`productos/${id}/activar/`);
+      const response = await api.patch(`productos/${id}/activar/`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -113,7 +113,7 @@ const productosAPI = {
   // Desactivar producto
   desactivar: async (id) => {
     try {
-      const response = await api.post(`productos/${id}/desactivar/`);
+      const response = await api.patch(`productos/${id}/desactivar/`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -208,6 +208,16 @@ const usuariosAPI = {
   desactivar: async (id) => {
     try {
       const response = await api.post(`usuarios/${id}/desactivar/`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Eliminar usuario
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`usuarios/${id}/`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, InputNumber, Space, Popconfirm, message, Tag, Spin } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, DollarOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Input, InputNumber, Space, Popconfirm, message, Tag, Spin, Card } from 'antd';
+import { EditOutlined, DeleteOutlined, PlusOutlined, DollarOutlined, SearchOutlined } from '@ant-design/icons';
 import { productosAPI } from '../../services/api';
 
 const { TextArea } = Input;
@@ -8,6 +8,7 @@ const { TextArea } = Input;
 const ProductosAdmin = () => {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchText, setSearchText] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isPriceModalVisible, setIsPriceModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -68,11 +69,11 @@ const ProductosAdmin = () => {
 
   const handleDelete = async (id) => {
     try {
-      await productosAPI.desactivar(id);
-      message.success('Producto desactivado');
+      await productosAPI.delete(id);
+      message.success('Producto eliminado');
       fetchProductos();
     } catch (error) {
-      message.error('Error al desactivar: ' + (error.error || error.message || 'Error desconocido'));
+      message.error('Error al eliminar: ' + (error.error || error.message || 'Error desconocido'));
       console.error('Error:', error);
     }
   };
@@ -119,11 +120,14 @@ const ProductosAdmin = () => {
       dataIndex: 'id',
       key: 'id',
       width: 70,
+      sorter: (a, b) => a.id - b.id,
+      defaultSortOrder: 'ascend',
     },
     {
       title: 'Nombre',
       dataIndex: 'nombre',
       key: 'nombre',
+      sorter: (a, b) => a.nombre.localeCompare(b.nombre),
     },
     {
       title: 'Descripción',
@@ -136,6 +140,7 @@ const ProductosAdmin = () => {
       dataIndex: 'precioUnitario',
       key: 'precioUnitario',
       render: (precio) => `$${precio.toFixed(2)}`,
+      sorter: (a, b) => a.precioUnitario - b.precioUnitario,
     },
     {
       title: 'Estado',
@@ -146,6 +151,11 @@ const ProductosAdmin = () => {
           {activo ? 'Activo' : 'Inactivo'}
         </Tag>
       ),
+      sorter: (a, b) => {
+        const aText = a.activo ? 'Activo' : 'Inactivo';
+        const bText = b.activo ? 'Activo' : 'Inactivo';
+        return aText.localeCompare(bText);
+      },
     },
     {
       title: 'Acciones',
@@ -192,26 +202,52 @@ const ProductosAdmin = () => {
     },
   ];
 
+  const productosFiltrados = productos.filter(producto => 
+    producto.nombre.toLowerCase().includes(searchText.toLowerCase())
+  );
+
   return (
     <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Gestión de Productos</h1>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          onClick={handleCreate}
-          size="large"
-        >
-          Nuevo Producto
-        </Button>
-      </div>
+      <Card style={{ marginBottom: '24px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{ marginBottom: '16px' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Gestión de Productos</h1>
+          <p style={{ color: '#666', margin: 0 }}>Administra el catálogo de productos disponibles</p>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Input
+            placeholder="Buscar por nombre..."
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ flex: 1, minWidth: '200px' }}
+            size="large"
+            allowClear
+          />
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={handleCreate}
+            size="large"
+            style={{ fontWeight: 'bold' }}
+          >
+            Nuevo Producto
+          </Button>
+        </div>
+      </Card>
 
       <Spin spinning={loading}>
         <Table 
           columns={columns} 
-          dataSource={productos} 
+          dataSource={productosFiltrados} 
           rowKey="id"
           pagination={{ pageSize: 10 }}
+          scroll={{ x: 'max-content' }}
+          locale={{
+            triggerDesc: 'Click para ordenar descendente',
+            triggerAsc: 'Click para ordenar ascendente',
+            cancelSort: 'Click para cancelar ordenamiento'
+          }}
         />
       </Spin>
 
