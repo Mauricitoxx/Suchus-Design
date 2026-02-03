@@ -81,13 +81,19 @@
   margin: 0 15px;
 }
 
-.home-menu a {
+.home-menu a,
+.home-menu button {
   text-decoration: none;
   color: #fff;
   font-size: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
 }
 
-.home-menu a:hover {
+.home-menu a:hover,
+.home-menu button:hover {
   text-decoration: underline;
 }
 

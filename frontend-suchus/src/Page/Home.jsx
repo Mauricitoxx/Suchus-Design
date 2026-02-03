@@ -1,14 +1,22 @@
 import React from "react";
 import "../assets/style/Home.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import CardImpresion from "../components/CardImpresion";
 import CardProducto from "../components/CardProducto";
+import authService from "../services/auth";
 
 // imágenes
 import logo from "../../media/logo.png";
 import brand from "../../media/nombre.png";
 
 const Home = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await authService.logout();
+    navigate('/login');
+  };
+
   return (
     <div className="home-container">
       {/* Header */}
@@ -22,10 +30,27 @@ const Home = () => {
       {/* Menú de navegación */}
       <nav className="home-menu">
         <ul>
+<<<<<<< HEAD
           <li><Link to="/perfil">Perfil</Link></li>
           <li><Link to="/servicios">Servicios</Link></li>
           <li><Link to="/contacto">Contacto</Link></li>
           <li><Link to="/">Cerrar sesión</Link></li>
+=======
+          <li>
+            <Link to="/perfil">Perfil</Link>
+          </li>
+          <li>
+            <Link to="/servicios">Servicios</Link>
+          </li>
+          <li>
+            <Link to="/contacto">Contacto</Link>
+          </li>
+          <li>
+            <button onClick={handleLogout}>
+              Cerrar sesión
+            </button>
+          </li>
+>>>>>>> 7aa8fe51ea513b110d917341672948a1e54210cc
         </ul>
       </nav>
 
