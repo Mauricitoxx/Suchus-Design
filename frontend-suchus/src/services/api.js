@@ -1,5 +1,4 @@
 import axios from 'axios';
-import authService from './auth';
 
 // TODO: Reemplazar con la URL del backend en producción
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/';
@@ -7,397 +6,175 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/';
 // Crear instancia de axios con configuración base
 const api = axios.create({
   baseURL: API_URL,
+  withCredentials: true, // <--- importante para enviar cookies automáticamente
 });
 
+// Interceptor para manejar errores 401 y refresco (opcional si backend lo maneja con cookies)
 // Interceptor para agregar el token a cada request
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    // Tomar JWT de la cookie 'access_token'
+    const cookies = document.cookie.split(';').map(c => c.trim());
+    const tokenCookie = cookies.find(c => c.startsWith('access_token='));
+    const token = tokenCookie ? tokenCookie.split('=')[1] : null;
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Interceptor para renovar token si expira
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        const newToken = await authService.refreshToken();
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return api(originalRequest);
-      } catch (err) {
-        authService.logout();
-        window.location.href = '/login';
-        return Promise.reject(err);
-      }
-    }
-
-    return Promise.reject(error);
-  }
-);
 
 // ========== PRODUCTOS ==========
-
 const productosAPI = {
-  // Listar todos los productos
   getAll: async (params = {}) => {
-    try {
-      const response = await api.get('productos/', { params });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.get('productos/', { params });
+    return response.data;
   },
-
-  // Obtener producto por ID
   getById: async (id) => {
-    try {
-      const response = await api.get(`productos/${id}/`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.get(`productos/${id}/`);
+    return response.data;
   },
-
-  // Crear producto
   create: async (data) => {
-    try {
-      const response = await api.post('productos/', data);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.post('productos/', data);
+    return response.data;
   },
-
-  // Actualizar producto
   update: async (id, data) => {
-    try {
-      const response = await api.patch(`productos/${id}/`, data);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.patch(`productos/${id}/`, data);
+    return response.data;
   },
-
-  // Eliminar producto
   delete: async (id) => {
-    try {
-      const response = await api.delete(`productos/${id}/`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.delete(`productos/${id}/`);
+    return response.data;
   },
-
-  // Activar producto
   activar: async (id) => {
-    try {
-      const response = await api.patch(`productos/${id}/activar/`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.patch(`productos/${id}/activar/`);
+    return response.data;
   },
-
-  // Desactivar producto
   desactivar: async (id) => {
-    try {
-      const response = await api.patch(`productos/${id}/desactivar/`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.patch(`productos/${id}/desactivar/`);
+    return response.data;
   },
-
-  // Actualizar precio
   actualizarPrecio: async (id, data) => {
-    try {
-      const response = await api.patch(`productos/${id}/actualizar_precio/`, data);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.patch(`productos/${id}/actualizar_precio/`, data);
+    return response.data;
   },
-
-  // Productos activos
   activos: async (params = {}) => {
-    try {
-      const response = await api.get('productos/activos/', { params });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.get('productos/activos/', { params });
+    return response.data;
   },
 };
 
 // ========== USUARIOS ==========
-
 const usuariosAPI = {
-  // Listar todos los usuarios
   getAll: async (params = {}) => {
-    try {
-      // Agregar límite alto para obtener todos los usuarios
-      const queryParams = { ...params, page_size: 1000 };
-      const response = await api.get('usuarios/', { params: queryParams });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const queryParams = { ...params, page_size: 1000 };
+    const response = await api.get('usuarios/', { params: queryParams });
+    return response.data;
   },
-
-  // Obtener usuario por ID
   getById: async (id) => {
-    try {
-      const response = await api.get(`usuarios/${id}/`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.get(`usuarios/${id}/`);
+    return response.data;
   },
-
-  // Crear usuario
   create: async (data) => {
-    try {
-      const response = await api.post('usuarios/', data);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.post('usuarios/', data);
+    return response.data;
   },
-
-  // Actualizar usuario
   update: async (id, data) => {
-    try {
-      const response = await api.patch(`usuarios/${id}/`, data);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.patch(`usuarios/${id}/`, data);
+    return response.data;
   },
-
-  // Cambiar contraseña
   cambiarPassword: async (id, data) => {
-    try {
-      const response = await api.post(`usuarios/${id}/cambiar_contraseña/`, data);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.post(`usuarios/${id}/cambiar_contraseña/`, data);
+    return response.data;
   },
-
-  // Activar usuario
   activar: async (id) => {
-    try {
-      const response = await api.post(`usuarios/${id}/activar/`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.post(`usuarios/${id}/activar/`);
+    return response.data;
   },
-
-  // Desactivar usuario
   desactivar: async (id) => {
-    try {
-      const response = await api.post(`usuarios/${id}/desactivar/`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.post(`usuarios/${id}/desactivar/`);
+    return response.data;
   },
-
-  // Eliminar usuario
   delete: async (id) => {
-    try {
-      const response = await api.delete(`usuarios/${id}/`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.delete(`usuarios/${id}/`);
+    return response.data;
   },
-
-  // Buscar usuarios
   buscar: async (query) => {
-    try {
-      const response = await api.get('usuarios/buscar/', { params: { q: query } });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.get('usuarios/buscar/', { params: { q: query } });
+    return response.data;
   },
 };
 
 // ========== PEDIDOS ==========
-
 const pedidosAPI = {
-  // Listar todos los pedidos
   getAll: async (params = {}) => {
-    try {
-      const response = await api.get('pedidos/', { params });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.get('pedidos/', { params });
+    return response.data;
   },
-
-  // Obtener pedido por ID
   getById: async (id) => {
-    try {
-      const response = await api.get(`pedidos/${id}/`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.get(`pedidos/${id}/`);
+    return response.data;
   },
-
-  // Crear pedido
   create: async (data) => {
-    try {
-      const response = await api.post('pedidos/', data);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.post('pedidos/', data);
+    return response.data;
   },
-
-  // Actualizar pedido
   update: async (id, data) => {
-    try {
-      const response = await api.patch(`pedidos/${id}/`, data);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.patch(`pedidos/${id}/`, data);
+    return response.data;
   },
-
-  // Eliminar pedido
   delete: async (id) => {
-    try {
-      const response = await api.delete(`pedidos/${id}/`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.delete(`pedidos/${id}/`);
+    return response.data;
   },
-
-  // Cambiar estado del pedido
   cambiarEstado: async (id, estado) => {
-    try {
-      const response = await api.post(`pedidos/${id}/cambiar_estado/`, { estado });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.post(`pedidos/${id}/cambiar_estado/`, { estado });
+    return response.data;
   },
-
-  // Mis pedidos (del usuario autenticado)
   misPedidos: async (params = {}) => {
-    try {
-      const response = await api.get('pedidos/mis_pedidos/', { params });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.get('pedidos/mis_pedidos/', { params });
+    return response.data;
   },
 };
 
 // ========== IMPRESIONES ==========
-
 const impresionesAPI = {
-  // Listar todas las impresiones
   getAll: async (params = {}) => {
-    try {
-      const response = await api.get('impresiones/', { params });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.get('impresiones/', { params });
+    return response.data;
   },
-
-  // Obtener impresión por ID
   getById: async (id) => {
-    try {
-      const response = await api.get(`impresiones/${id}/`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.get(`impresiones/${id}/`);
+    return response.data;
   },
-
-  // Crear impresión (subir archivo)
   create: async (formData) => {
-    try {
-      const response = await api.post('impresiones/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.post('impresiones/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
   },
-
-  // Actualizar impresión
   update: async (id, data) => {
-    try {
-      const response = await api.patch(`impresiones/${id}/`, data);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.patch(`impresiones/${id}/`, data);
+    return response.data;
   },
-
-  // Eliminar impresión
   delete: async (id) => {
-    try {
-      const response = await api.delete(`impresiones/${id}/`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.delete(`impresiones/${id}/`);
+    return response.data;
   },
-
-  // Descargar archivo
   descargar: async (id) => {
-    try {
-      const response = await api.get(`impresiones/${id}/descargar/`, {
-        responseType: 'blob',
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.get(`impresiones/${id}/descargar/`, { responseType: 'blob' });
+    return response.data;
   },
-
-  // Mis impresiones
   misImpresiones: async (params = {}) => {
-    try {
-      const response = await api.get('impresiones/mis_impresiones/', { params });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.get('impresiones/mis_impresiones/', { params });
+    return response.data;
   },
-
-  // Limpiar impresiones antiguas
   limpiarAntiguas: async (dias = 30) => {
-    try {
-      const response = await api.post('impresiones/limpiar_antiguas/', { dias });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    const response = await api.post('impresiones/limpiar_antiguas/', { dias });
+    return response.data;
   },
 };
 

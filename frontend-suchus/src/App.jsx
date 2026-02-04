@@ -9,6 +9,7 @@ import Admin from "./components/Admin/Admin";
 import UsuariosAdmin from "./components/Admin/UsuariosAdmin";
 import ProductosAdmin from "./components/Admin/ProductosAdmin";
 import NotFound from "./Page/NotFound";
+import Pedido from "./Page/Pedido"
 function App() {
 
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/pedidos" element={<Pedido />} />
         <Route path="/home" element={<Home />} />
         <Route path="/perfil" element={<Perfil />} />
         <Route path="/admin" element={<Admin />} />

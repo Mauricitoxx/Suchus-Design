@@ -1,6 +1,8 @@
 from rest_framework import serializers
-from .models import Usuario, UsuarioTipo, Pedido, Impresion, Producto
+from .models import Usuario, UsuarioTipo, Pedido, Impresion, Producto,PedidoProductoDetalle
 
+
+    
 class UsuarioRegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
@@ -172,15 +174,25 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+class PedidoProductoDetalleSerializer(serializers.ModelSerializer):
+    fk_producto_nombre = serializers.CharField(source='fk_producto.nombre', read_only=True)
+    fk_producto_precio = serializers.FloatField(source='fk_producto.precioUnitario', read_only=True)
+
+    class Meta:
+        model = PedidoProductoDetalle
+        fields = ['id', 'fk_producto', 'fk_producto_nombre', 'fk_producto_precio', 'cantidad', 'subtotal']
+
 class PedidoSerializer(serializers.ModelSerializer):
     usuario_nombre = serializers.CharField(source='fk_usuario.nombre', read_only=True)
     usuario_apellido = serializers.CharField(source='fk_usuario.apellido', read_only=True)
     usuario_email = serializers.EmailField(source='fk_usuario.email', read_only=True)
     
+    detalles = PedidoProductoDetalleSerializer(many=True, read_only=True, source='pedidoproductodetalle_set')
+    
     class Meta:
         model = Pedido
         fields = ['id', 'estado', 'observacion', 'total', 'fk_usuario', 
-                  'usuario_nombre', 'usuario_apellido', 'usuario_email']
+                  'usuario_nombre', 'usuario_apellido', 'usuario_email', 'detalles']
         read_only_fields = ['id']
 
 class ImpresionSerializer(serializers.ModelSerializer):

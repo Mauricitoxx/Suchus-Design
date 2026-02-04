@@ -12,8 +12,9 @@
 .home-header {
   width: 100%;
   background-color: #282c34;
-  padding: 30px 20px;
+  padding: 30px 20px; /* esto asegura que quede estático */
 }
+
 .header-inner {
   max-width: 1200px;
   margin: 0 auto;
@@ -63,7 +64,6 @@
 .home-menu {
   width: 100%;
   margin-top: 20px;
-  position: sticky;
   top: 0;
   background-color: #282c34;
   z-index: 1000;

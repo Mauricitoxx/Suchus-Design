@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "../assets/style/Home.css";
 import { Link, useNavigate } from "react-router-dom";
 import CardImpresion from "../components/CardImpresion";
 import CardProducto from "../components/CardProducto";
 import authService from "../services/auth";
+import { FileTextOutlined, ShoppingOutlined } from '@ant-design/icons';
 
 // imágenes
 import logo from "../../media/logo.png";
@@ -11,6 +12,23 @@ import brand from "../../media/nombre.png";
 
 const Home = () => {
   const navigate = useNavigate();
+  const [cantidadCarrito, setCantidadCarrito] = useState(0);
+
+  useEffect(() => {
+    actualizarCantidadCarrito();
+
+    // Escuchar cambios en localStorage para actualizar cantidad al agregar productos
+    window.addEventListener("storage", actualizarCantidadCarrito);
+    return () => {
+      window.removeEventListener("storage", actualizarCantidadCarrito);
+    };
+  }, []);
+
+  const actualizarCantidadCarrito = () => {
+    const carrito = JSON.parse(localStorage.getItem("carrito")) || [];
+    const total = carrito.reduce((acc, p) => acc + p.cantidad, 0);
+    setCantidadCarrito(total);
+  };
 
   const handleLogout = async () => {
     await authService.logout();
@@ -40,9 +58,39 @@ const Home = () => {
             <Link to="/contacto">Contacto</Link>
           </li>
           <li>
-            <button onClick={handleLogout}>
-              Cerrar sesión
-            </button>
+            <button onClick={handleLogout}>Cerrar sesión</button>
+          </li>
+          {/* Icono de pedidos/carrito */}
+          <li
+            className="menu-list-icon"
+            onClick={() => navigate('/pedidos')}
+            style={{
+              display: 'inline-block',
+              transition: 'transform 0.2s',
+              cursor: 'pointer',
+              marginLeft: '100px',
+              position: 'relative'
+            }}
+            onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.3)')}
+            onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+          >
+            <FileTextOutlined style={{ fontSize: '22px', color: '#fff' }} />
+            {cantidadCarrito > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-8px',
+                  backgroundColor: 'red',
+                  color: 'white',
+                  borderRadius: '50%',
+                  padding: '2px 6px',
+                  fontSize: '12px'
+                }}
+              >
+                {cantidadCarrito}
+              </span>
+            )}
           </li>
         </ul>
       </nav>
