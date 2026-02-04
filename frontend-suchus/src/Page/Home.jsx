@@ -4,6 +4,11 @@ import { Link, useNavigate } from "react-router-dom";
 import CardImpresion from "../components/CardImpresion";
 import CardProducto from "../components/CardProducto";
 import authService from "../services/auth";
+import { FileTextOutlined } from '@ant-design/icons';
+
+
+
+
 
 // imágenes
 import logo from "../../media/logo.png";
@@ -44,7 +49,22 @@ const Home = () => {
               Cerrar sesión
             </button>
           </li>
+          {/* Icono de lista como li más */}
+          <li
+            className="menu-list-icon"
+            onClick={() => navigate('/pedidos')}
+            style={{ display: 'inline-block', transition: 'transform 0.2s', cursor: 'pointer',marginLeft: '100px', }}
+            onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.3)')}
+            onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+          >
+            <FileTextOutlined style={{  fontSize: '22px', color: '#fff',}} />
+          </li>
+
+
         </ul>
+        
+
+
       </nav>
 
       {/* Contenido */}
