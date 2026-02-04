@@ -3,6 +3,7 @@ import { Card, Button, Input, List, Modal, message, Spin } from "antd";
 import { useNavigate } from "react-router-dom";
 import authService from "../services/auth";
 import { pedidosAPI } from "../services/api";
+import Navbar from "./Navbar";
 
 const PerfilMenu = () => {
   const navigate = useNavigate();
@@ -91,7 +92,9 @@ const PerfilMenu = () => {
   }
 
   return (
-    <div style={{ maxWidth: 500, margin: "0 auto", padding: 24 }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Navbar showLinks={false} showAuth={true} showCart={false} showBackButton={true} />
+      <div style={{ maxWidth: 500, margin: "40px auto", padding: 24, flex: 1 }}>
       <Card title="Perfil de Usuario" bordered>
         <p><strong>Nombre:</strong> {user.nombre}</p>
         <p><strong>Apellido:</strong> {user.apellido}</p>
@@ -162,6 +165,7 @@ const PerfilMenu = () => {
           )}
         </Spin>
       </Card>
+    </div>
     </div>
   );
 };

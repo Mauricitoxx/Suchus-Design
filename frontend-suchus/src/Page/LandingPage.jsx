@@ -1,14 +1,36 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from 'antd';
 import { PrinterOutlined, ScanOutlined, FileProtectOutlined, ShoppingCartOutlined, FileAddOutlined, UserAddOutlined, MailOutlined, WhatsAppOutlined, PhoneOutlined, RobotOutlined } from '@ant-design/icons';
 import Navbar from "./Navbar";
 import Chatbot from "../components/Chatbot";
 import ProductoLanding from "../components/ProductoLanding";
 import ImpresionLanding from "../components/ImpresionLanding";
+import authService from "../services/auth";
 import "../assets/style/LandingPage.css";
 import imagen1 from "./ImagenFondo1.jpg"; // Asegúrate que la ruta es correcta (case-sensitive for deployment)
 
 const LandingPage = () => {
+  const navigate = useNavigate();
+  const isAuthenticated = authService.isAuthenticated();
+
+  const handlePedidoClick = (e) => {
+    e.preventDefault();
+    if (isAuthenticated) {
+      navigate('/home');
+    } else {
+      document.querySelector('#orders')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleLoginClick = (e) => {
+    e.preventDefault();
+    if (isAuthenticated) {
+      navigate('/home');
+    } else {
+      navigate('/login');
+    }
+  };
   return (
     // Quitamos los estilos globales que pusimos antes en el contenedor principal
     <div className="landing-container">
@@ -65,7 +87,7 @@ const LandingPage = () => {
     <br /> {/* Salto de línea opcional para que se vea mejor */}
     Archivos, impresiones, productos y más, todo en un solo lugar.
   </p>
-  <a href="#orders" className="btn-primary">Realizar Pedido</a>
+  <a href="#orders" className="btn-primary" onClick={handlePedidoClick}>Realizar Pedido</a>
 </div>
         {/* Ya no necesitamos el div "hero-image" antiguo aquí */}
 
@@ -158,7 +180,7 @@ const LandingPage = () => {
       {/* Orders Section */}
       <section id="orders" style={{ padding: '60px 20px', backgroundColor: '#f9f9f9' }}>
         <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '10px', color: '#333' }}>
-          Realizá tu Pedido
+          Pasos para realizar un pedido
         </h2>
         <p style={{ textAlign: 'center', color: '#666', marginBottom: '40px', fontSize: '1.1rem' }}>
           Registrate y comenzá a gestionar tus pedidos en simples pasos
@@ -233,6 +255,7 @@ const LandingPage = () => {
         <div style={{ textAlign: 'center' }}>
           <a 
             href="/Login" 
+            onClick={handleLoginClick}
             style={{
               display: 'inline-block',
               padding: '12px 40px',
@@ -249,7 +272,7 @@ const LandingPage = () => {
             onMouseEnter={(e) => e.target.style.backgroundColor = '#0056b3'}
             onMouseLeave={(e) => e.target.style.backgroundColor = '#1890ff'}
           >
-            Iniciar Sesión / Registrarse
+            Realizar Pedido
           </a>
         </div>
       </section>

@@ -3,6 +3,7 @@ import { Card, Spin, Button } from 'antd';
 import { FileTextOutlined, EditOutlined, BookOutlined, FolderOutlined, ShoppingOutlined, ScissorOutlined, HighlightOutlined, TagsOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { productosAPI } from '../services/api';
+import authService from '../services/auth';
 
 const obtenerIcono = (nombreProducto) => {
   const nombre = nombreProducto.toLowerCase();
@@ -134,7 +135,13 @@ const ProductoLanding = () => {
           <Button 
             type="primary" 
             size="large"
-            onClick={() => navigate('/login')}
+            onClick={() => {
+              if (authService.isAuthenticated()) {
+                navigate('/home');
+              } else {
+                navigate('/login');
+              }
+            }}
             style={{
               backgroundColor: '#1890ff',
               borderColor: '#1890ff',

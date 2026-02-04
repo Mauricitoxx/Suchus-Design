@@ -4,55 +4,33 @@
 .landing-header {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* logo izquierda, navbar derecha */
-  padding: 1rem 2rem;
-  height: 120px;
-  position: relative; /* necesario para el menú móvil */
-  z-index: 1000; /* siempre sobre la hero */
-  background-color: rgba(0,0,0,0.8); /* opcional */
-}
-
-.header-inner {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  gap: 20px;
+  justify-content: space-between;
+  padding: 0.5rem 2rem;
+  min-height: 60px;
+  position: relative;
+  z-index: 1000;
+  background-color: rgba(0,0,0,0.8);
 }
 
 /* Logo a la izquierda */
-.header-inner .logo {
-  height: 120px;
+.landing-header .logo {
+  height: 55px;
   object-fit: contain;
   flex-shrink: 0;
-  margin: 80px; /* ajustá el valor según cuánto quieras moverlo */
 }
 
-
-/* Nombre centrado */
-.header-inner .brand {
+/* Nombre/Brand al lado del logo - clase específica para navbar */
+.navbar-brand {
   height: auto;
-  max-height: 150px;
+  max-height: 55px;
   object-fit: contain;
-  margin: 0 auto; /* centra sin tapar los botones */
   flex-shrink: 0;
-}
-
-/* Ajuste para que navbar quede a la derecha */
-.navbar-links {
-  margin-left: 62%; /* empuja al extremo derecho */
 }
 
 /* Clase para el fondo animado */
 .navbar-animated-bg {
-  /* Definimos el degradado: 45 grados, rojo y azul */
   background: linear-gradient(45deg, #ff009d, #0000ff, #46f9ff);
-  
-  /* Hacemos el fondo muy grande para poder moverlo */
   background-size: 400% 400%;
-  
-  /* Aplicamos la animación: nombre, duración, suavizado, infinito */
   animation: gradientFlow 10s ease infinite;
 }
 
@@ -69,22 +47,162 @@
   }
 }
 
-
-/* --- ESTILOS RESPONSIVE DEL NAVBAR --- */
+/* --- ESTILOS DEL NAVBAR --- */
 
 /* Contenedor de los enlaces (Desktop por defecto) */
 .navbar-links {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 0;
+  margin-left: auto;
 }
 
-/* El botón de hamburguesa (Oculto en PC) */
+.navbar-links a {
+  color: white !important;
+  text-decoration: none;
+  font-size: 1.05rem;
+  font-weight: 500;
+  padding: 0 18px 0 5px;
+  border-right: 1px solid rgba(255, 255, 255, 0.5);
+  transition: opacity 0.3s;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+}
+
+.navbar-links a:last-child {
+  border-right: none;
+}
+
+.navbar-links a:hover {
+  opacity: 0.7;
+}
+
+/* Botón de login */
+.login-button {
+  background-color: #1890ff;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-left: 20px;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.login-button:hover {
+  background-color: #1370cc;
+  opacity: 1;
+}
+
+/* Menú de usuario logueado */
+.user-menu {
+  display: flex;
+  align-items: center;
+  margin-left: 20px;
+  position: relative;
+}
+
+.user-dropdown {
+  position: relative;
+}
+
+.user-greeting {
+  color: white !important;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 18px 0 5px;
+  transition: opacity 0.3s;
+  user-select: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+}
+
+.user-greeting:hover {
+  opacity: 0.7;
+}
+
+.dropdown-content {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  background-color: white;
+  min-width: 180px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.dropdown-content button {
+  display: block;
+  width: 100%;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  text-align: center;
+  color: #333;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dropdown-content button:hover {
+  background-color: #f5f5f5;
+}
+
+.dropdown-content button:last-child {
+  color: #ff4d4f;
+  border-top: 1px solid #eee;
+}
+
+.dropdown-content button:last-child:hover {
+  background-color: #fff1f0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.logout-button {
+  background-color: transparent;
+  color: white;
+  border: 1px solid white;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.logout-button:hover {
+  background-color: white;
+  color: #1890ff;
+}
+
+/* El botón de hamburguesa (Oculto en desktop) */
 .menu-icon {
   display: none;
   cursor: pointer;
   flex-direction: column;
   gap: 5px;
+  z-index: 1001;
 }
 
 .bar {
@@ -94,24 +212,56 @@
   transition: all 0.3s ease;
 }
 
+/* --- VISTA TABLET (Max 1024px) --- */
+@media (max-width: 1024px) {
+  .navbar-links {
+    gap: 0;
+  }
+  
+  .navbar-links a {
+    font-size: 1rem;
+    padding: 0 18px 0 5px;
+  }
+  
+  .brand {
+    max-height: 60px;
+  }
+}
+
 /* --- VISTA MÓVIL (Max 768px) --- */
 @media (max-width: 768px) {
+  .landing-header {
+    padding: 1rem;
+  }
+
   /* Mostramos el botón hamburguesa */
   .menu-icon {
     display: flex;
   }
 
+  /* Escondemos el nombre/brand en móvil para dar espacio */
+  .navbar-brand {
+    display: none;
+  }
+
+  /* Logo más pequeño en móvil */
+  .logo {
+    height: 50px;
+  }
+
   /* Transformamos el menú en una lista vertical */
   .navbar-links {
-    display: none; /* Oculto por defecto */
+    display: none;
     flex-direction: column;
     position: absolute;
-    top: 100%; /* Justo debajo del header */
+    top: 100%;
     left: 0;
     width: 100%;
-    background-color: rgba(0, 0, 0, 0.95); /* Fondo oscuro casi sólido */
+    background-color: rgba(0, 0, 0, 0.95);
     padding: 20px 0;
     border-top: 1px solid #333;
+    gap: 0;
+    margin-left: 0;
   }
 
   /* Clase que se agrega cuando abrimos el menú */
@@ -120,17 +270,105 @@
     animation: slideDown 0.3s ease forwards;
   }
 
-  /* Quitamos los bordes/separadores en celular para que se vea limpio */
+  /* Quitamos los bordes en móvil */
   .navbar-links a {
     border: none !important; 
-    padding: 15px 0;
+    padding: 15px 20px !important;
     width: 100%;
     text-align: center;
-    font-size: 1.5rem !important; /* Letra más grande para tocar con el dedo */
+    font-size: 1.3rem !important;
+    color: white !important;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: block !important;
+    height: auto !important;
+  }
+
+  .navbar-links a:last-child {
+    border-bottom: none;
+  }
+
+  /* Botón de login en móvil */
+  .login-button {
+    width: calc(100% - 40px);
+    margin: 10px 20px 0 20px;
+    text-align: center;
+  }
+
+  /* Menú de usuario en móvil */
+  .user-menu {
+    width: 100%;
+    margin: 10px 0 0 0;
+  }
+
+  .user-dropdown {
+    width: 100%;
+    padding: 0 20px;
+  }
+
+  .user-greeting {
+    display: block;
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 15px 20px;
+    width: 100%;
+  }
+
+  .dropdown-content {
+    position: static;
+    box-shadow: none;
+    border-radius: 0;
+    background-color: rgba(255, 255, 255, 0.05);
+    margin-top: 5px;
+  }
+
+  .dropdown-content button {
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 15px 20px;
+  }
+
+  .dropdown-content button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .dropdown-content button:last-child {
+    color: #ff6b6b;
+    border-top: none;
+  }
+
+  .dropdown-content button:last-child:hover {
+    background-color: rgba(255, 107, 107, 0.1);
+  }
+
+  .logout-button {
+    width: 100%;
+    padding: 10px 20px;
+  }
+}
+
+/* --- VISTA MUY PEQUEÑA (Max 480px) --- */
+@media (max-width: 480px) {
+  .landing-header {
+    padding: 0.75rem;
+  }
+
+  .logo {
+    height: 40px;
+  }
+
+  .navbar-links a {
+    font-size: 1.2rem !important;
+    padding: 12px 15px !important;
   }
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { 
+    opacity: 0; 
+    transform: translateY(-10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
 }

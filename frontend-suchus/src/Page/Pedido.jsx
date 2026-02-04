@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "antd";
 import { ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons';
 import "../assets/style/Pedido.css";
-import logo from "../../media/logo.png";
-import brand from "../../media/nombre.png";
+import Navbar from "./Navbar";
 
 const Pedido = () => {
   const navigate = useNavigate();
@@ -43,19 +42,7 @@ const Pedido = () => {
 
   return (
     <div className="pedido-page-container">
-      <header className="home-header">
-        <div className="header-inner">
-          <img src={logo} alt="Logo Suchus" className="logo" />
-          <img src={brand} alt="Suchus Copy and Design" className="brand" />
-          <div className="header-actions">
-            <Button 
-              type="text" 
-              icon={<ArrowLeftOutlined style={{ fontSize: '24px', color: '#fff' }} />}
-              onClick={() => navigate('/home')}
-            />
-          </div>
-        </div>
-      </header>
+      <Navbar showLinks={false} showAuth={true} showCart={false} showBackButton={true} />
 
       <div className="pedido-container">
         <h2>Tu Pedido</h2>
