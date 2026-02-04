@@ -2,6 +2,7 @@ import React from 'react';
 import { Card } from 'antd';
 import { PrinterOutlined, FileTextOutlined, FileImageOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import authService from '../services/auth';
 
 const ImpresionLanding = () => {
   const navigate = useNavigate();
@@ -46,7 +47,11 @@ const ImpresionLanding = () => {
   ];
 
   const handleImprimir = () => {
-    navigate('/login');
+    if (authService.isAuthenticated()) {
+      navigate('/home');
+    } else {
+      navigate('/login');
+    }
   };
 
   return (

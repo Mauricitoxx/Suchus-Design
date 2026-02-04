@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Card, Input, Button, Alert } from 'antd';
 import { MailOutlined, LockOutlined, UserAddOutlined } from '@ant-design/icons';
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import authService from "../services/auth";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -26,7 +27,15 @@ const Login = () => {
     try {
       const data = await authService.login(email, password);
       console.log('Login exitoso:', data);
-      navigate('/home');
+      
+      // Si viene de la landing (/) o no tiene estado previo, quedarse en landing
+      // Si viene de cualquier otro lado, ir a home
+      const from = location.state?.from;
+      if (from === '/' || !from) {
+        navigate('/');
+      } else {
+        navigate('/home');
+      }
     } catch (err) {
       console.error('Error en login:', err);
       setError(typeof err === 'string' ? err : err.detail || err.message || 'Error al iniciar sesión. Verifica tus credenciales')
