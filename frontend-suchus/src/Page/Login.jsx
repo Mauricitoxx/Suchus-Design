@@ -3,6 +3,7 @@ import { Card, Input, Button, Alert } from 'antd';
 import { MailOutlined, LockOutlined, UserAddOutlined } from '@ant-design/icons';
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import authService from "../services/auth";
+import Navbar from "./Navbar";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -51,19 +52,8 @@ const Login = () => {
       display: 'flex', 
       flexDirection: 'column'
     }}>
-      {/* Header */}
-      <div style={{ 
-        backgroundColor: 'white', 
-        padding: '20px 40px', 
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        marginBottom: '40px'
-      }}>
-        <h1 style={{ margin: 0, fontSize: '24px', color: '#333' }}>
-          <Link to="/" style={{ textDecoration: 'none', color: '#333' }}>
-            Suchus Copy & Design
-          </Link>
-        </h1>
-      </div>
+      {/* Navbar sin links ni auth */}
+      <Navbar showLinks={false} showAuth={false} />
 
       {/* Main Content */}
       <div style={{ 
