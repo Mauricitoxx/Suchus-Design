@@ -22,7 +22,6 @@ const obtenerIcono = (nombreProducto) => {
   if (nombre.includes('etiqueta'))
     return <TagsOutlined style={{ fontSize: '80px', color: '#1890ff' }} />;
   
-  // Icono por defecto para productos que no matcheen
   return <ShoppingOutlined style={{ fontSize: '80px', color: '#1890ff' }} />;
 };
 
@@ -56,6 +55,36 @@ const CardProducto = () => {
     setCantidades((prev) => ({ ...prev, [id]: Math.max((prev[id] || 0) - 1, 0) }));
   };
 
+  const handleAgregarAlCarrito = (producto) => {
+    const cantidad = cantidades[producto.id] || 0;
+    if (cantidad === 0) {
+      message.warning('Debes seleccionar al menos una unidad');
+      return;
+    }
+
+    // Tomar carrito existente
+    const carritoActual = JSON.parse(localStorage.getItem('carrito')) || [];
+
+    // Ver si ya existe este producto en el carrito
+    const index = carritoActual.findIndex(p => p.id === producto.id);
+    if (index >= 0) {
+      carritoActual[index].cantidad += cantidad;
+    } else {
+      carritoActual.push({ ...producto, cantidad });
+    }
+
+    // Guardar carrito actualizado
+    localStorage.setItem('carrito', JSON.stringify(carritoActual));
+
+    // Resetear la cantidad del producto
+    setCantidades((prev) => ({ ...prev, [producto.id]: 0 }));
+
+    // Disparar evento storage para actualizar contador en Home
+    window.dispatchEvent(new Event('storage'));
+
+    message.success(`${producto.nombre} agregado al carrito!`);
+  };
+
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '50px' }}>
@@ -79,9 +108,7 @@ const CardProducto = () => {
       {productos.map((producto) => (
         <Card key={producto.id} className="producto-card">
           {/* Icono según nombre del producto */}
-          <div className="producto-icono">
-            {obtenerIcono(producto.nombre)}
-          </div>
+          <div className="producto-icono">{obtenerIcono(producto.nombre)}</div>
 
           {/* Precio debajo del icono */}
           <div className="producto-precio">${producto.precioUnitario}</div>
@@ -92,12 +119,17 @@ const CardProducto = () => {
           {/* Botones de cantidad */}
           <div className="producto-acciones">
             <Button onClick={() => handleQuitar(producto.id)}>-</Button>
-            <span>{cantidades[producto.id] || 0}</span>
+            <span style={{ margin: '0 10px' }}>{cantidades[producto.id] || 0}</span>
             <Button onClick={() => handleAgregar(producto.id)}>+</Button>
           </div>
 
           {/* Botón agregar al carrito */}
-          <Button type="primary" className="agregar-carrito">
+          <Button
+            type="primary"
+            className="agregar-carrito"
+            onClick={() => handleAgregarAlCarrito(producto)}
+            style={{ marginTop: '10px', width: '100%' }}
+          >
             Agregar al carrito
           </Button>
         </Card>

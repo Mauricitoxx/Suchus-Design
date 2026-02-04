@@ -13,7 +13,7 @@ from datetime import timedelta
 import boto3
 import uuid
 import os
-from .models import Usuario, Pedido, Impresion, Producto, UsuarioTipo
+from .models import Usuario, Pedido, Impresion, Producto, UsuarioTipo, PedidoProductoDetalle
 from .serializers import (UsuarioRegisterSerializer, UsuarioLoginSerializer, PedidoSerializer, 
                           ImpresionSerializer, ProductoSerializer, UsuarioSerializer,
                           UsuarioCreateSerializer, UsuarioUpdateSerializer)
@@ -131,6 +131,30 @@ class PedidoViewSet(viewsets.ModelViewSet):
             {"error": "Estado inválido"}, 
             status=status.HTTP_400_BAD_REQUEST
         )
+    @action(detail=True, methods=['post'])
+    def agregar_detalle(self, request, pk=None):
+        pedido = self.get_object()
+        detalles = request.data.get('detalles', [])
+        total = pedido.total
+
+        for det in detalles:
+            producto_id = det['fk_producto']
+            cantidad = det['cantidad']
+            subtotal = det.get('subtotal', 0)
+            total += subtotal
+            PedidoProductoDetalle.objects.create(
+                fk_pedido=pedido,
+                fk_producto_id=producto_id,
+                cantidad=cantidad,
+                subtotal=subtotal
+            )
+
+        pedido.total = total
+        pedido.save()
+
+        serializer = self.get_serializer(pedido)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class ImpresionViewSet(viewsets.ModelViewSet):
     queryset = Impresion.objects.all()

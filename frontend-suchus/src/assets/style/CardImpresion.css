@@ -1,13 +1,75 @@
 .card-impresion {
   margin-bottom: 20px;
+  padding: 16px;
 }
 
 .impresion-opciones {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-start;
+  gap: 12px;
 }
 
 .impresion-opciones span {
-  margin-right: 12px;
+  min-width: 120px;
+}
+
+.impresion-opciones select,
+.impresion-opciones input[type="number"] {
+  min-width: 100px;
+}
+
+/* Input de archivo como botón destacado */
+.input-archivo-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.input-archivo-wrapper input[type="file"] {
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  cursor: pointer;
+}
+
+.input-archivo-label {
+  display: inline-block;
+  padding: 10px 16px;
+  background-color: #1890ff;
+  color: white;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 200px;
+  text-align: center;
+  text-overflow: ellipsis;
+}
+
+/* Lista de archivos */
+.archivos-listado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Link del archivo */
+.archivo-link {
+  color: white;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+/* Precio destacado */
+.precio-por-hoja {
+  font-weight: bold;
+}
+
+/* Footer del card */
+.footer-impresion {
+  display: flex;
+  align-items: center;
+  margin-top: 16px;
 }
