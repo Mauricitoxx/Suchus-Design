@@ -131,7 +131,7 @@ const pedidosAPI = {
     return response.data;
   },
   cambiarEstado: async (id, estado) => {
-    const response = await api.post(`pedidos/${id}/cambiar_estado/`, { estado });
+    const response = await api.patch(`pedidos/${id}/cambiar_estado/`, { estado });
     return response.data;
   },
   misPedidos: async (params = {}) => {
