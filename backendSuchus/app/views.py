@@ -772,3 +772,20 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             "mensaje": "Usuario promovido a Admin correctamente",
             "usuario": serializer.data
         })
+    # Dentro de la clase UsuarioViewSet en views.py
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def mi_descuento(self, request):
+        """
+        Retorna exclusivamente el descuento del tipo de usuario 
+        del usuario que está logueado actualmente.
+        """
+        user = request.user
+        # Accedemos a la relación usuarioTipo definida en tu modelo
+        if user.usuarioTipo:
+            return Response({
+                "tipo": user.usuarioTipo.descripcion,
+                "descuento": user.usuarioTipo.descuento
+            })
+        
+        return Response({"tipo": "Sin Tipo", "descuento": 0})

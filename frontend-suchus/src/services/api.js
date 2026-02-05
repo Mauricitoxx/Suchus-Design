@@ -106,6 +106,11 @@ const usuariosAPI = {
     const response = await api.get('usuarios/buscar/', { params: { q: query } });
     return response.data;
   },
+  // NUEVO MÉTODO PARA EL CARRITO
+  getDescuento: async () => {
+    const response = await api.get('usuarios/mi_descuento/');
+    return response.data; // Esto devolverá { tipo: "Alumno", descuento: 10 }
+  },
 };
 
 // ========== PEDIDOS ==========

@@ -19,7 +19,7 @@ const AdminRoute = ({ children }) => {
   const user = authService.getCurrentUser();
   // Verificamos el campo "tipo" que vimos en consola
   if (!user || user.tipo !== 'Admin') {
-    return <Navigate to="/home" replace />;
+    return <Navigate to="*" replace />;
   }
   return children;
 };
