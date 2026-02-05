@@ -58,7 +58,12 @@ class UsuarioSerializer(serializers.ModelSerializer):
 class UsuarioCreateSerializer(serializers.ModelSerializer):
     contraseña = serializers.CharField(write_only=True, min_length=6)
     confirmar_contraseña = serializers.CharField(write_only=True)
-    tipo_usuario = serializers.ChoiceField(choices=['Cliente', 'Admin'], write_only=True, required=False, default='Cliente')
+    tipo_usuario = serializers.ChoiceField(
+        choices=['Cliente', 'Admin', 'Frecuente', 'Alumno'],
+        write_only=True,
+        required=False,
+        default='Cliente'
+    )
     
     class Meta:
         model = Usuario

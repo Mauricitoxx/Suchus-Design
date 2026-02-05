@@ -153,7 +153,12 @@ const Admin = () => {
                 <h3>Productos</h3>
                 <p>Administra precios y stock</p>
               </div>
-              <Button type="primary" block size="large" style={{ marginTop: 16 }}>
+              <Button 
+                type="primary" 
+                block 
+                size="large"
+                style={{ marginTop: 16, backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+              >
                 Gestionar
               </Button>
             </Card>
