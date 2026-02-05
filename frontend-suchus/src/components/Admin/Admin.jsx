@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, Button, Row, Col, Input, Modal, message, Spin } from "antd";
-import { UserOutlined, ShoppingOutlined } from "@ant-design/icons";
+import { UserOutlined, ShoppingOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import authService from "../../services/auth";
 
@@ -74,6 +74,15 @@ const Admin = () => {
 
   return (
     <div style={{ maxWidth: 500, margin: "0 auto", padding: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
+        <Button 
+          type="text" 
+          icon={<ArrowLeftOutlined />} 
+          onClick={() => navigate("/")} 
+          style={{ fontSize: '20px', marginRight: 12 }}
+        />
+        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>Panel Administrativo</h1>
+      </div>
       <Card title="Perfil de Usuario" bordered>
         <p><strong>Nombre:</strong> {user.nombre}</p>
         <p><strong>Apellido:</strong> {user.apellido}</p>

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, InputNumber, Space, Popconfirm, message, Tag, Spin, Card } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, DollarOutlined, SearchOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, PlusOutlined, DollarOutlined, SearchOutlined,ArrowLeftOutlined  } from '@ant-design/icons';
 import { productosAPI } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
+
 
 const { TextArea } = Input;
 
 const ProductosAdmin = () => {
+  const navigate = useNavigate();
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -210,8 +213,21 @@ const ProductosAdmin = () => {
     <div style={{ padding: '24px' }}>
       <Card style={{ marginBottom: '24px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <div style={{ marginBottom: '16px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Gestión de Productos</h1>
-          <p style={{ color: '#666', margin: 0 }}>Administra el catálogo de productos disponibles</p>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '20px' }}>
+            {/* Este es el botón de la flecha */}
+            <Button 
+              icon={<ArrowLeftOutlined />} 
+              onClick={() => navigate('/admin')} 
+              style={{ marginTop: '5px' }}
+            />
+            
+            <div>
+              <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', margin: 0 }}>
+                Gestión de Usuarios
+              </h1>
+              <p style={{ color: '#666', margin: 0 }}>Administra los usuarios del sistema</p>
+            </div>
+          </div>
         </div>
         
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>

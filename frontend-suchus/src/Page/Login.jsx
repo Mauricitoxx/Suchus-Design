@@ -19,27 +19,29 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    e.stopPropagation();
-    
-    console.log('Iniciando login con:', email);
     setError('');
     setLoading(true);
 
     try {
       const data = await authService.login(email, password);
-      console.log('Login exitoso:', data);
       
-      // Si viene de la landing (/) o no tiene estado previo, quedarse en landing
-      // Si viene de cualquier otro lado, ir a home
-      const from = location.state?.from;
-      if (from === '/' || !from) {
-        navigate('/');
+      // Extraemos el usuario que devuelve el servicio
+      const user = data.user;
+
+      // REDIRECCIÓN SEGÚN ROL
+      // Usamos 'tipo' que es como viene en tu objeto de consola
+      if (user?.tipo === 'Admin') {
+        navigate('/admin');
       } else {
-        navigate('/home');
+        // Si es Cliente o cualquier otro, va a /home o de donde venía
+        const from = location.state?.from || '/home';
+        // Evitamos que 'from' sea la landing si queremos forzar /home
+        navigate(from === '/' ? '/home' : from);
       }
+
     } catch (err) {
       console.error('Error en login:', err);
-      setError(typeof err === 'string' ? err : err.detail || err.message || 'Error al iniciar sesión. Verifica tus credenciales')
+      setError(typeof err === 'string' ? err : err.detail || err.message || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }

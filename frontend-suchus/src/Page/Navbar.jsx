@@ -166,6 +166,17 @@ const Navbar = ({ showLinks = true, showAuth = true, showCart = false, showBackB
                   </span>
                   {userMenuOpen && (
                     <div className="dropdown-content">
+                      {/* --- NUEVO BOTÓN: SOLO PARA ADMINS --- */}
+                      {user?.tipo === 'Admin' && (
+                        <button 
+                          onClick={() => handleNavigate('/admin')}
+                          style={{ color: '#1890ff', fontWeight: 'bold', borderBottom: '1px solid #eee' }}
+                        >
+                          Panel de Control
+                        </button>
+                      )}
+                      {/* -------------------------------------- */}
+
                       <button onClick={() => handleNavigate('/perfil')}>
                         Ver Perfil
                       </button>

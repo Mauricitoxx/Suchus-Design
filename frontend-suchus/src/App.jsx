@@ -1,5 +1,5 @@
 import './App.css'
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"; // Agregamos Navigate
 import Login from "./Page/Login"
 import Register from "./components/Register"
 import LandingPage  from './Page/LandingPage';
@@ -9,9 +9,20 @@ import Admin from "./components/Admin/Admin";
 import UsuariosAdmin from "./components/Admin/UsuariosAdmin";
 import ProductosAdmin from "./components/Admin/ProductosAdmin";
 import NotFound from "./Page/NotFound";
-import Pedido from "./Page/Pedido"
-function App() {
+import Pedido from "./Page/Pedido";
+import authService from './services/auth'; // Importamos tu authService
 
+// 1. Componente para proteger rutas de Admin
+const AdminRoute = ({ children }) => {
+  const user = authService.getCurrentUser();
+  // Verificamos el campo "tipo" que vimos en consola
+  if (!user || user.tipo !== 'Admin') {
+    return <Navigate to="/home" replace />;
+  }
+  return children;
+};
+
+function App() {
   return (
     <Router>
       <Routes>
@@ -21,13 +32,22 @@ function App() {
         <Route path="/pedidos" element={<Pedido />} />
         <Route path="/home" element={<Home />} />
         <Route path="/perfil" element={<Perfil />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/admin/usuarios" element={<UsuariosAdmin />} />
-        <Route path="/admin/productos" element={<ProductosAdmin />} />
+        
+        {/* 2. Protegemos las rutas de administración */}
+        <Route path="/admin" element={
+          <AdminRoute> <Admin /> </AdminRoute>
+        } />
+        <Route path="/admin/usuarios" element={
+          <AdminRoute> <UsuariosAdmin /> </AdminRoute>
+        } />
+        <Route path="/admin/productos" element={
+          <AdminRoute> <ProductosAdmin /> </AdminRoute>
+        } />
+        
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   )
 }
 
-export default App
+export default App;
