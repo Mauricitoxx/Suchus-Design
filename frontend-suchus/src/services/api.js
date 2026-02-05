@@ -177,6 +177,14 @@ const impresionesAPI = {
     return response.data;
   },
 };
+// Dentro de tu archivo de api.js
+// CORREGIDO: Sin el "/" al principio para que use la baseURL correctamente
+const usuariostipoAPI = {
+  getTipos: () => api.get('usuario-tipos/').then(res => res.data),
+  createTipo: (data) => api.post('usuario-tipos/', data),
+  updateTipo: (id, data) => api.patch(`usuario-tipos/${id}/`, data), // Usamos patch para ser consistentes con tus otros métodos
+  deleteTipo: (id) => api.delete(`usuario-tipos/${id}/`),
+};
 
-export { productosAPI, usuariosAPI, pedidosAPI, impresionesAPI };
+export { productosAPI, usuariosAPI, pedidosAPI, impresionesAPI,usuariostipoAPI };
 export default api;

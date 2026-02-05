@@ -17,7 +17,7 @@ from .models import Usuario, Pedido, Impresion, Producto, UsuarioTipo, PedidoPro
 from .serializers import (UsuarioRegisterSerializer, UsuarioLoginSerializer, PedidoSerializer, 
                           ImpresionSerializer, ProductoSerializer, UsuarioSerializer,
                           UsuarioCreateSerializer, UsuarioUpdateSerializer)
-
+from .serializers import UsuarioTipoSerializer
 # Create your views here.
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -64,6 +64,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         }
         return data
 
+
+class UsuarioTipoViewSet(viewsets.ModelViewSet):
+    queryset = UsuarioTipo.objects.all()
+    serializer_class = UsuarioTipoSerializer
 
 class UsuarioRegisterView(generics.CreateAPIView):
     queryset = Usuario.objects.all()
@@ -131,16 +135,19 @@ class PedidoViewSet(viewsets.ModelViewSet):
             {"error": "Estado inválido"}, 
             status=status.HTTP_400_BAD_REQUEST
         )
-    @action(detail=True, methods=['post'])
-    def agregar_detalle(self, request, pk=None):
-        pedido = self.get_object()
-        detalles = request.data.get('detalles', [])
-        total = pedido.total
+    def create(self, request, *args, **kwargs):
+        # El usuario autenticado se obtiene del JWT en la cookie
+        user = request.user
+        datos = request.data
+        detalles = datos.get('detalles', [])
 
+        pedido = Pedido.objects.create(fk_usuario=user, total=0)
+
+        total = 0
         for det in detalles:
             producto_id = det['fk_producto']
             cantidad = det['cantidad']
-            subtotal = det.get('subtotal', 0)
+            subtotal = cantidad * det.get('precio_unitario', 0)
             total += subtotal
             PedidoProductoDetalle.objects.create(
                 fk_pedido=pedido,
@@ -152,8 +159,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
         pedido.total = total
         pedido.save()
 
-        serializer = self.get_serializer(pedido)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = PedidoSerializer(pedido)
+        return Response(serializer.data)
+
 
 
 class ImpresionViewSet(viewsets.ModelViewSet):

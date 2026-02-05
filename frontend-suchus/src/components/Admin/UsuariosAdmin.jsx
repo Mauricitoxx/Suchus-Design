@@ -168,12 +168,27 @@ const UsuariosAdmin = () => {
       title: 'Tipo',
       dataIndex: 'tipo_usuario',
       key: 'tipo_usuario',
-      render: (tipo) => (
-        <Tag color={tipo === 'Admin' ? 'red' : 'blue'}>
-          {tipo}
-        </Tag>
-      ),
-      sorter: (a, b) => (a.tipo_usuario || '').localeCompare(b.tipo_usuario || ''),
+      width: 120, // Agregamos un ancho fijo para que no "baile" la columna
+      filters: [
+        { text: 'Admin', value: 'Admin' },
+        { text: 'Cliente', value: 'Cliente' },
+        { text: 'Frecuente', value: 'Frecuente' },
+        { text: 'Alumno', value: 'Alumno' },
+      ],
+      // Esta función es la que hace la magia del filtrado
+      onFilter: (value, record) => record.tipo_usuario === value,
+      render: (tipo) => {
+        let color = 'blue';
+        if (tipo === 'Admin') color = 'red';
+        if (tipo === 'Frecuente') color = 'purple';
+        if (tipo === 'Alumno') color = 'orange';
+        
+        return (
+          <Tag color={color} key={tipo}>
+            {tipo?.toUpperCase() || 'S/T'}
+          </Tag>
+        );
+      },
     },
     {
       title: 'Estado',
@@ -281,6 +296,17 @@ const UsuariosAdmin = () => {
             size="large"
             allowClear
           />
+          
+          {/* --- NUEVO BOTÓN DE DESCUENTOS --- */}
+          <Button 
+            onClick={() => navigate('/admin/descuentos')}
+            size="large"
+            style={{ backgroundColor: '#52c41a', color: 'white', fontWeight: 'bold' }}
+          >
+            Gestionar Descuentos
+          </Button>
+          {/* -------------------------------- */}
+
           <Button 
             type="primary" 
             icon={<PlusOutlined />} 
@@ -369,6 +395,8 @@ const UsuariosAdmin = () => {
             <Select placeholder="Selecciona un tipo">
               <Option value="Cliente">Cliente</Option>
               <Option value="Admin">Admin</Option>
+              <Option value="Frecuente">Frecuente</Option>
+              <Option value="Alumno">Alumno</Option>
             </Select>
           </Form.Item>
 

@@ -12,6 +12,7 @@ import NotFound from "./Page/NotFound";
 import Pedido from "./Page/Pedido";
 import authService from './services/auth';// Importamos tu authService
 import PedidoAdmin from "./components/Admin/PedidoAdmin";
+import DescuentosAdmin from './components/Admin/DescuentosAdmin';
 
 // 1. Componente para proteger rutas de Admin
 const AdminRoute = ({ children }) => {
@@ -47,6 +48,7 @@ function App() {
         <Route path="/admin/pedidos" element={
           <AdminRoute> <PedidoAdmin /> </AdminRoute>
         } />
+        <Route path="/admin/descuentos" element={<AdminRoute> <DescuentosAdmin/> </AdminRoute>} />
         
         <Route path="*" element={<NotFound />} />
       </Routes>

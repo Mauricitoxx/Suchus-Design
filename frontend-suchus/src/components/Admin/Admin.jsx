@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Card, Button, Row, Col, Input, Modal, message, Spin } from "antd";
-import { UserOutlined, ShoppingOutlined, ArrowLeftOutlined, FileTextOutlined } from "@ant-design/icons";
+import { 
+  UserOutlined, 
+  ShoppingOutlined, 
+  ArrowLeftOutlined, 
+  FileTextOutlined, 
+  PercentageOutlined 
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import authService from "../../services/auth";
 
@@ -99,6 +105,7 @@ const Admin = () => {
         />
         <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>Panel Administrativo</h1>
       </div>
+      
       <Card title="Perfil de Usuario" bordered>
         <p><strong>Nombre:</strong> {user.nombre}</p>
         <p><strong>Apellido:</strong> {user.apellido}</p>
@@ -110,43 +117,6 @@ const Admin = () => {
           </Button>
         </p>
       </Card>
-
-      <Modal
-        title="Cambiar contraseña"
-        open={visible}
-        onOk={handleOk}
-        onCancel={handleCancel}
-        okText="Guardar"
-        cancelText="Cancelar"
-      >
-        <div style={{ marginBottom: 16 }}>
-          <label>Contraseña Actual:</label>
-          <Input.Password
-            placeholder="Tu contraseña actual"
-            value={currentPassword}
-            onChange={e => setCurrentPassword(e.target.value)}
-            style={{ marginTop: 8 }}
-          />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label>Nueva Contraseña:</label>
-          <Input.Password
-            placeholder="Nueva contraseña (mínimo 6 caracteres)"
-            value={newPassword}
-            onChange={e => setNewPassword(e.target.value)}
-            style={{ marginTop: 8 }}
-          />
-        </div>
-        <div>
-          <label>Confirmar Nueva Contraseña:</label>
-          <Input.Password
-            placeholder="Repetir nueva contraseña"
-            value={confirmPassword}
-            onChange={e => setConfirmPassword(e.target.value)}
-            style={{ marginTop: 8 }}
-          />
-        </div>
-      </Modal>
 
       <Card title="Panel de Administración" bordered style={{ marginTop: 24 }}>
         <Row gutter={[24, 24]}>
@@ -213,8 +183,69 @@ const Admin = () => {
             </Card>
           </Col>
 
+          {/* Gestión de Descuentos (NUEVO) */}
+          <Col xs={24} md={8}>
+            <Card
+              hoverable
+              onClick={() => navigate("/admin/descuentos")}
+              style={cardStyle}
+              bodyStyle={cardBodyStyle}
+            >
+              <div>
+                <PercentageOutlined style={{ fontSize: 50, color: "#eb2f96", marginBottom: 16 }} />
+                <h3>Descuentos</h3>
+                <p>Configura beneficios por tipo de usuario</p>
+              </div>
+              <Button 
+                type="primary" 
+                block 
+                size="large"
+                style={{ marginTop: 16, backgroundColor: '#eb2f96', borderColor: '#eb2f96' }}
+              >
+                Gestionar
+              </Button>
+            </Card>
+          </Col>
+          
         </Row>
       </Card>
+
+      <Modal
+        title="Cambiar contraseña"
+        open={visible}
+        onOk={handleOk}
+        onCancel={handleCancel}
+        okText="Guardar"
+        cancelText="Cancelar"
+      >
+        <div style={{ marginBottom: 16 }}>
+          <label>Contraseña Actual:</label>
+          <Input.Password
+            placeholder="Tu contraseña actual"
+            value={currentPassword}
+            onChange={e => setCurrentPassword(e.target.value)}
+            style={{ marginTop: 8 }}
+          />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label>Nueva Contraseña:</label>
+          <Input.Password
+            placeholder="Nueva contraseña (mínimo 6 caracteres)"
+            value={newPassword}
+            onChange={e => setNewPassword(e.target.value)}
+            style={{ marginTop: 8 }}
+          />
+        </div>
+        <div>
+          <label>Confirmar Nueva Contraseña:</label>
+          <Input.Password
+            placeholder="Repetir nueva contraseña"
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+            style={{ marginTop: 8 }}
+          />
+        </div>
+      </Modal>
     </div>
   );
 };
