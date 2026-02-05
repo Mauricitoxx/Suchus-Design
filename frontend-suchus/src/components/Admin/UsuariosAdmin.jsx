@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Space, Popconfirm, message, Tag, Spin, Card } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, LockOutlined, SearchOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, PlusOutlined, LockOutlined, SearchOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { usuariosAPI } from '../../services/api';
-
+import { useNavigate } from 'react-router-dom'; // Agregar esta importación
 const { Option } = Select;
 
 const UsuariosAdmin = () => {
+  const navigate = useNavigate();
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -55,29 +56,37 @@ const UsuariosAdmin = () => {
 
   const handleSave = async (values) => {
     try {
+      const data = {
+        ...values,
+        tipo_usuario: values.usuarioTipo,
+      };
+      delete data.usuarioTipo;
+
       if (editingUser) {
-        // Transformar usuarioTipo a tipo_usuario para el backend
-        const updateData = {
-          ...values,
-          tipo_usuario: values.usuarioTipo,
-        };
-        delete updateData.usuarioTipo;
-        await usuariosAPI.update(editingUser.id, updateData);
-        message.success('Usuario actualizado correctamente');
+        await usuariosAPI.update(editingUser.id, data);
+        message.success('Usuario actualizado');
       } else {
-        const createData = {
-          ...values,
-          tipo_usuario: values.usuarioTipo,
-        };
-        delete createData.usuarioTipo;
-        await usuariosAPI.create(createData);
-        message.success('Usuario creado correctamente');
+        await usuariosAPI.create(data);
+        message.success('Usuario creado');
       }
       setIsModalVisible(false);
       fetchUsuarios();
     } catch (error) {
-      message.error('Error al guardar: ' + (error.error || error.message || 'Error desconocido'));
-      console.error('Error:', error);
+      // 1. Extraer los datos del error de la respuesta (Axios guarda esto en error.response.data)
+      const backendErrors = error.response?.data;
+
+      if (backendErrors && typeof backendErrors === 'object') {
+        // 2. Mapear errores a los campos del formulario de Ant Design
+        const formErrors = Object.keys(backendErrors).map(field => ({
+          name: field === 'tipo_usuario' ? 'usuarioTipo' : field, // Ajuste por el nombre que usas en el form
+          errors: Array.isArray(backendErrors[field]) ? backendErrors[field] : [backendErrors[field]]
+        }));
+        
+        form.setFields(formErrors);
+        message.error('Revisa los campos marcados en rojo');
+      } else {
+        message.error('Error: ' + (error.message || 'Error inesperado'));
+      }
     }
   };
 
@@ -226,16 +235,40 @@ const UsuariosAdmin = () => {
     },
   ];
 
-  const usuariosFiltrados = usuarios.filter(usuario => 
-    usuario.email.toLowerCase().includes(searchText.toLowerCase())
-  );
+  const usuariosFiltrados = usuarios.filter(usuario => {
+    const term = searchText.toLowerCase();
+    
+    // Verificamos cada campo, asegurándonos de que no sean nulos
+    const emailMatch = (usuario.email || '').toLowerCase().includes(term);
+    const nombreMatch = (usuario.nombre || '').toLowerCase().includes(term);
+    const apellidoMatch = (usuario.apellido || '').toLowerCase().includes(term);
+    
+    // Opcional: Combinar nombre y apellido para buscar "Juan Perez" completo
+    const nombreCompleto = `${usuario.nombre || ''} ${usuario.apellido || ''}`.toLowerCase();
+    const nombreCompletoMatch = nombreCompleto.includes(term);
+
+    return emailMatch || nombreMatch || apellidoMatch || nombreCompletoMatch;
+  });
 
   return (
     <div style={{ padding: '24px' }}>
       <Card style={{ marginBottom: '24px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <div style={{ marginBottom: '16px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Gestión de Usuarios</h1>
-          <p style={{ color: '#666', margin: 0 }}>Administra los usuarios del sistema</p>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '20px' }}>
+            {/* Este es el botón de la flecha */}
+            <Button 
+              icon={<ArrowLeftOutlined />} 
+              onClick={() => navigate('/admin')} 
+              style={{ marginTop: '5px' }}
+            />
+            
+            <div>
+              <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', margin: 0 }}>
+                Gestión de Usuarios
+              </h1>
+              <p style={{ color: '#666', margin: 0 }}>Administra los usuarios del sistema</p>
+            </div>
+          </div>
         </div>
         
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>

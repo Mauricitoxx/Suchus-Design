@@ -167,8 +167,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
+# settings.py
+LANGUAGE_CODE = 'es-ar' # o 'es-es'
 
 TIME_ZONE = 'UTC'
 
@@ -184,4 +184,5 @@ STATIC_URL = 'static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+
 
