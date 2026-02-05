@@ -10,7 +10,8 @@ import UsuariosAdmin from "./components/Admin/UsuariosAdmin";
 import ProductosAdmin from "./components/Admin/ProductosAdmin";
 import NotFound from "./Page/NotFound";
 import Pedido from "./Page/Pedido";
-import authService from './services/auth'; // Importamos tu authService
+import authService from './services/auth';// Importamos tu authService
+import PedidoAdmin from "./components/Admin/PedidoAdmin";
 
 // 1. Componente para proteger rutas de Admin
 const AdminRoute = ({ children }) => {
@@ -42,6 +43,9 @@ function App() {
         } />
         <Route path="/admin/productos" element={
           <AdminRoute> <ProductosAdmin /> </AdminRoute>
+        } />
+        <Route path="/admin/pedidos" element={
+          <AdminRoute> <PedidoAdmin /> </AdminRoute>
         } />
         
         <Route path="*" element={<NotFound />} />
