@@ -106,6 +106,11 @@ const usuariosAPI = {
     const response = await api.get('usuarios/buscar/', { params: { q: query } });
     return response.data;
   },
+  // NUEVO MÉTODO PARA EL CARRITO
+  getDescuento: async () => {
+    const response = await api.get('usuarios/mi_descuento/');
+    return response.data; // Esto devolverá { tipo: "Alumno", descuento: 10 }
+  },
 };
 
 // ========== PEDIDOS ==========
@@ -131,7 +136,7 @@ const pedidosAPI = {
     return response.data;
   },
   cambiarEstado: async (id, estado) => {
-    const response = await api.post(`pedidos/${id}/cambiar_estado/`, { estado });
+    const response = await api.patch(`pedidos/${id}/cambiar_estado/`, { estado });
     return response.data;
   },
   misPedidos: async (params = {}) => {
@@ -177,6 +182,14 @@ const impresionesAPI = {
     return response.data;
   },
 };
+// Dentro de tu archivo de api.js
+// CORREGIDO: Sin el "/" al principio para que use la baseURL correctamente
+const usuariostipoAPI = {
+  getTipos: () => api.get('usuario-tipos/').then(res => res.data),
+  createTipo: (data) => api.post('usuario-tipos/', data),
+  updateTipo: (id, data) => api.patch(`usuario-tipos/${id}/`, data), // Usamos patch para ser consistentes con tus otros métodos
+  deleteTipo: (id) => api.delete(`usuario-tipos/${id}/`),
+};
 
-export { productosAPI, usuariosAPI, pedidosAPI, impresionesAPI };
+export { productosAPI, usuariosAPI, pedidosAPI, impresionesAPI,usuariostipoAPI };
 export default api;

@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Card, Button, Row, Col, Input, Modal, message, Spin } from "antd";
-import { UserOutlined, ShoppingOutlined, ArrowLeftOutlined } from "@ant-design/icons";
+import { 
+  UserOutlined, 
+  ShoppingOutlined, 
+  ArrowLeftOutlined, 
+  FileTextOutlined, 
+  PercentageOutlined 
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import authService from "../../services/auth";
 
@@ -72,8 +78,24 @@ const Admin = () => {
     return null;
   }
 
+  // Estilo común para alinear botones al fondo
+  const cardStyle = {
+    textAlign: "center",
+    height: "100%",
+    display: 'flex',
+    flexDirection: 'column'
+  };
+
+  const cardBodyStyle = {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    padding: '20px'
+  };
+
   return (
-    <div style={{ maxWidth: 500, margin: "0 auto", padding: 24 }}>
+    <div style={{ maxWidth: 1000, margin: "0 auto", padding: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
         <Button 
           type="text" 
@@ -83,6 +105,7 @@ const Admin = () => {
         />
         <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>Panel Administrativo</h1>
       </div>
+      
       <Card title="Perfil de Usuario" bordered>
         <p><strong>Nombre:</strong> {user.nombre}</p>
         <p><strong>Apellido:</strong> {user.apellido}</p>
@@ -93,6 +116,98 @@ const Admin = () => {
             Cambiar contraseña
           </Button>
         </p>
+      </Card>
+
+      <Card title="Panel de Administración" bordered style={{ marginTop: 24 }}>
+        <Row gutter={[24, 24]}>
+          
+          {/* Usuarios */}
+          <Col xs={24} md={8}>
+            <Card
+              hoverable
+              onClick={() => navigate("/admin/usuarios")}
+              style={cardStyle}
+              bodyStyle={cardBodyStyle}
+            >
+              <div>
+                <UserOutlined style={{ fontSize: 50, color: "#1890ff", marginBottom: 16 }} />
+                <h3>Usuarios</h3>
+                <p>Administra usuarios y permisos</p>
+              </div>
+              <Button type="primary" block size="large" style={{ marginTop: 16 }}>
+                Gestionar
+              </Button>
+            </Card>
+          </Col>
+
+          {/* Productos */}
+          <Col xs={24} md={8}>
+            <Card
+              hoverable
+              onClick={() => navigate("/admin/productos")}
+              style={cardStyle}
+              bodyStyle={cardBodyStyle}
+            >
+              <div>
+                <ShoppingOutlined style={{ fontSize: 50, color: "#52c41a", marginBottom: 16 }} />
+                <h3>Productos</h3>
+                <p>Administra precios y stock</p>
+              </div>
+              <Button type="primary" block size="large" style={{ marginTop: 16 }}>
+                Gestionar
+              </Button>
+            </Card>
+          </Col>
+
+          {/* Pedidos */}
+          <Col xs={24} md={8}>
+            <Card
+              hoverable
+              onClick={() => navigate("/admin/pedidos")}
+              style={cardStyle}
+              bodyStyle={cardBodyStyle}
+            >
+              <div>
+                <FileTextOutlined style={{ fontSize: 50, color: "#faad14", marginBottom: 16 }} />
+                <h3>Pedidos</h3>
+                <p>Control de ventas y estados</p>
+              </div>
+              <Button 
+                type="primary" 
+                block 
+                size="large"
+                style={{ marginTop: 16, backgroundColor: '#faad14', borderColor: '#faad14' }}
+              >
+                Gestionar
+              </Button>
+            </Card>
+          </Col>
+
+          {/* Gestión de Descuentos (NUEVO) */}
+          <Col xs={24} md={8}>
+            <Card
+              hoverable
+              onClick={() => navigate("/admin/descuentos")}
+              style={cardStyle}
+              bodyStyle={cardBodyStyle}
+            >
+              <div>
+                <PercentageOutlined style={{ fontSize: 50, color: "#eb2f96", marginBottom: 16 }} />
+                <h3>Descuentos</h3>
+                <p>Configura beneficios por tipo de usuario</p>
+              </div>
+              <Button 
+                type="primary" 
+                block 
+                size="large"
+                style={{ marginTop: 16, backgroundColor: '#eb2f96', borderColor: '#eb2f96' }}
+              >
+                Gestionar
+              </Button>
+            </Card>
+          </Col>
+          
+        </Row>
       </Card>
 
       <Modal
@@ -131,40 +246,6 @@ const Admin = () => {
           />
         </div>
       </Modal>
-
-      <Card title="Panel de Administración" bordered style={{ marginTop: 24 }}>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12}>
-            <Card
-              hoverable
-              onClick={() => navigate("/admin/usuarios")}
-              style={{ textAlign: "center", height: "100%" }}
-            >
-              <UserOutlined style={{ fontSize: 48, color: "#1890ff", marginBottom: 16 }} />
-              <h3>Gestión de Usuarios</h3>
-              <p>Administra usuarios, permisos y accesos</p>
-              <Button type="primary" size="large" style={{ marginTop: 16 }}>
-                Ir a Usuarios
-              </Button>
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12}>
-            <Card
-              hoverable
-              onClick={() => navigate("/admin/productos")}
-              style={{ textAlign: "center", height: "100%" }}
-            >
-              <ShoppingOutlined style={{ fontSize: 48, color: "#52c41a", marginBottom: 16 }} />
-              <h3>Gestión de Productos</h3>
-              <p>Administra productos, precios y stock</p>
-              <Button type="primary" size="large" style={{ marginTop: 16 }}>
-                Ir a Productos
-              </Button>
-            </Card>
-          </Col>
-        </Row>
-      </Card>
     </div>
   );
 };

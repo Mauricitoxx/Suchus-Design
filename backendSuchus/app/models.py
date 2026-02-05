@@ -1,11 +1,17 @@
 from django.db import models
-
+from django.core.validators import MinValueValidator, MaxValueValidator
 # Create your models here.
 class UsuarioTipo(models.Model):
     descripcion = models.CharField(max_length=100, null=False)
-    
+    descuento = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Porcentaje de descuento (0-100)"
+    )
+
     def __str__(self):
-        return self.descripcion
+        # Es útil ver el descuento al seleccionar el tipo en el admin
+        return f"{self.descripcion} ({self.descuento}%)"
 
 class Usuario(models.Model):
     email = models.EmailField(unique=True)

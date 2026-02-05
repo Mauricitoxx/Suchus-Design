@@ -2,6 +2,11 @@ from rest_framework import serializers
 from .models import Usuario, UsuarioTipo, Pedido, Impresion, Producto,PedidoProductoDetalle
 
 
+
+class UsuarioTipoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UsuarioTipo
+        fields = ['id', 'descripcion', 'descuento']
     
 class UsuarioRegisterSerializer(serializers.ModelSerializer):
     class Meta:
