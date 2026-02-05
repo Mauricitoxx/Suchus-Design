@@ -1,128 +1,183 @@
-import React, { useState } from 'react';
-import { Card, Select, InputNumber, Button, Tag } from 'antd';
+import React, { useState, useMemo } from 'react';
+import { Card, Select, InputNumber, Button, Tag, message, Divider } from 'antd';
+import { DeleteOutlined, PrinterOutlined, FilePdfOutlined, FileImageOutlined } from '@ant-design/icons';
 import '../assets/style/CardImpresion.css';
 
 const { Option } = Select;
 
 const CardImpresion = () => {
-  const [impresion, setImpresion] = useState({
-    cantidad: 1,
-    tipoHoja: 'A4',
-    color: 'blanco y negro',
-    archivos: [], // lista de archivos
-  });
+  const [archivos, setArchivos] = useState([]);
 
   const precioPorHoja = {
     A4: { 'blanco y negro': 20, color: 40 },
     A3: { 'blanco y negro': 30, color: 60 },
   };
 
-  const handleImpresionChange = (field, value) => {
-    setImpresion({ ...impresion, [field]: value });
+  // --- MÉTODO BINARIO PARA CONTAR HOJAS ---
+  const obtenerPaginasPDF = (file) => {
+    return new Promise((resolve) => {
+      if (file.type !== 'application/pdf') {
+        resolve(1);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = function() {
+        const contenido = reader.result;
+        const matches = contenido.match(/\/Count\s+(\d+)/g);
+        if (matches) {
+          const num = matches[matches.length - 1].match(/\d+/)[0];
+          resolve(parseInt(num));
+        } else {
+          const paginas = (contenido.match(/\/Type\s*\/Page\b/g) || []).length;
+          resolve(paginas > 0 ? paginas : 1);
+        }
+      };
+      reader.readAsText(file);
+    });
   };
 
-  const handleArchivoChange = (e) => {
+  const handleArchivoChange = async (e) => {
     const files = Array.from(e.target.files);
-    const nuevosArchivos = files.map((file) => ({
-      file,
-      previewUrl: URL.createObjectURL(file),
-    }));
-    setImpresion({ ...impresion, archivos: [...impresion.archivos, ...nuevosArchivos] });
-    e.target.value = null; // permite seleccionar nuevamente el mismo archivo
+    const nuevosArchivos = [];
+
+    for (const file of files) {
+      const paginas = await obtenerPaginasPDF(file);
+      nuevosArchivos.push({
+        id: Math.random().toString(36).substr(2, 9),
+        file,
+        name: file.name,
+        hojas: paginas,
+        previewUrl: URL.createObjectURL(file),
+        type: file.type,
+        // Configuración individual por archivo
+        tipoHoja: 'A4',
+        color: 'blanco y negro',
+        cantidad: 1
+      });
+    }
+
+    setArchivos(prev => [...prev, ...nuevosArchivos]);
+    e.target.value = null; 
   };
 
-  const handleEliminarArchivo = (index) => {
-    const archivosActualizados = impresion.archivos.filter((_, i) => i !== index);
-    setImpresion({ ...impresion, archivos: archivosActualizados });
+  const updateArchivoConfig = (id, field, value) => {
+    setArchivos(prev => prev.map(arc => 
+      arc.id === id ? { ...arc, [field]: value } : arc
+    ));
   };
 
-  const handleAgregarPedido = () => {
-    if (impresion.archivos.length === 0) {
-      alert('Debes seleccionar al menos un archivo antes de agregar al pedido.');
+  const handleEliminarArchivo = (id) => {
+    setArchivos(prev => {
+      const arc = prev.find(a => a.id === id);
+      if (arc) URL.revokeObjectURL(arc.previewUrl);
+      return prev.filter(a => a.id !== id);
+    });
+  };
+
+  const handleAgregarAlCarrito = () => {
+    if (archivos.length === 0) {
+      message.warning('Por favor, selecciona al menos un archivo');
       return;
     }
 
-    console.log('Agregar al pedido:', impresion);
-    alert(`Pedido iniciado con ${impresion.archivos.length} archivo(s).`);
+    const nuevosItemsParaCarrito = archivos.map((arc, index) => {
+      const precioH = precioPorHoja[arc.tipoHoja][arc.color];
+      return {
+        id: `IMP-${Date.now()}-${index}`,
+        nombre: arc.name,
+        cantidad: arc.cantidad,
+        precioUnitario: arc.hojas * precioH,
+        esImpresion: true,
+        detalles: {
+          tipo: `${arc.tipoHoja} (${arc.color})`,
+          hojas: arc.hojas,
+          archivoOriginal: arc.name
+        }
+      };
+    });
+
+    const carritoActual = JSON.parse(localStorage.getItem('carrito')) || [];
+    localStorage.setItem('carrito', JSON.stringify([...carritoActual, ...nuevosItemsParaCarrito]));
+    window.dispatchEvent(new Event('storage')); 
+    
+    message.success(`${archivos.length} configuraciones agregadas al carrito`);
+    setArchivos([]);
   };
 
+  // Cálculo del total de la carga actual
+  const totalCarga = archivos.reduce((acc, arc) => {
+    const p = precioPorHoja[arc.tipoHoja][arc.color];
+    return acc + (arc.hojas * p * arc.cantidad);
+  }, 0);
+
   return (
-    <Card className="card-impresion" title="Impresión">
-      <div className="impresion-opciones">
-        <span>Tipo de hoja: </span>
-        <Select
-          value={impresion.tipoHoja}
-          onChange={(v) => handleImpresionChange('tipoHoja', v)}
-          style={{ width: 100 }}
-        >
-          <Option value="A4">A4</Option>
-          <Option value="A3">A3</Option>
-        </Select>
-
-        <span>Color: </span>
-        <Select
-          value={impresion.color}
-          onChange={(v) => handleImpresionChange('color', v)}
-          style={{ width: 140 }}
-        >
-          <Option value="blanco y negro">Blanco y negro</Option>
-          <Option value="color">Color</Option>
-        </Select>
-
-        <span>Cantidad: </span>
-        <InputNumber
-          min={1}
-          value={impresion.cantidad}
-          onChange={(v) => handleImpresionChange('cantidad', v)}
-          style={{ width: 70 }}
-        />
-      </div>
-
-      {/* Input de archivos */}
-      <div className="input-archivo-wrapper" style={{ marginTop: 12 }}>
-        <label className="input-archivo-label">
-          Seleccionar archivo(s)
-          <input type="file" multiple onChange={handleArchivoChange} />
+    <Card className="card-impresion" title={<span><PrinterOutlined /> Servicio de Impresiones</span>}>
+      
+      <div className="upload-container" style={{ border: '2px dashed #40a9ff', padding: '20px', textAlign: 'center', borderRadius: '8px', marginBottom: 20 }}>
+        <input type="file" multiple onChange={handleArchivoChange} accept=".pdf,image/*" id="file-input" style={{ display: 'none' }} />
+        <label htmlFor="file-input" style={{ cursor: 'pointer', color: '#1890ff' }}>
+          <strong>+ Seleccionar Archivos</strong>
+          <p style={{ fontSize: '12px', color: '#8c8c8c', margin: 0 }}>Podrás configurar cada uno por separado</p>
         </label>
       </div>
 
-      {/* Lista de archivos con link y opción de eliminar */}
-      {impresion.archivos.length > 0 && (
-        <div className="archivos-listado" style={{ marginTop: 12 }}>
-          {impresion.archivos.map((item, index) => (
-            <Tag
-              key={index}
-              color="blue"
-              closable
-              onClose={() => handleEliminarArchivo(index)}
-              style={{ marginBottom: 6 }}
-            >
-              <a
-                href={item.previewUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="archivo-link"
-              >
-                {item.file.name}
-              </a>
-            </Tag>
-          ))}
+      <div className="lista-archivos-config">
+        {archivos.map((arc) => (
+          <Card key={arc.id} size="small" style={{ marginBottom: 10, backgroundColor: '#fafafa' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {arc.type === 'application/pdf' ? <FilePdfOutlined style={{color: 'red'}}/> : <FileImageOutlined style={{color: 'blue'}}/>}
+                <a href={arc.previewUrl} target="_blank" rel="noreferrer" style={{ fontWeight: '500', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {arc.name}
+                </a>
+                <Tag color="blue">{arc.hojas} {arc.hojas === 1 ? 'pág' : 'págs'}</Tag>
+              </div>
+              <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleEliminarArchivo(arc.id)} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Select size="small" value={arc.tipoHoja} onChange={v => updateArchivoConfig(arc.id, 'tipoHoja', v)} style={{ width: 70 }}>
+                <Option value="A4">A4</Option>
+                <Option value="A3">A3</Option>
+              </Select>
+
+              <Select size="small" value={arc.color} onChange={v => updateArchivoConfig(arc.id, 'color', v)} style={{ width: 110 }}>
+                <Option value="blanco y negro">B&N</Option>
+                <Option value="color">Color</Option>
+              </Select>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <small>Copias:</small>
+                <InputNumber size="small" min={1} value={arc.cantidad} onChange={v => updateArchivoConfig(arc.id, 'cantidad', v)} style={{ width: 50 }} />
+              </div>
+
+              <div style={{ marginLeft: 'auto', fontWeight: 'bold' }}>
+                ${arc.hojas * precioPorHoja[arc.tipoHoja][arc.color] * arc.cantidad}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {archivos.length > 0 && (
+        <div className="resumen-pago" style={{ marginTop: 20, padding: 15, backgroundColor: '#e6f7ff', borderRadius: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Total a cargar ({archivos.length} archivos):</span>
+            <strong style={{ fontSize: '18px', color: '#1890ff' }}>${totalCarga}</strong>
+          </div>
         </div>
       )}
 
-      {/* Precio y botón */}
-      <div className="footer-impresion" style={{ marginTop: 12 }}>
-        <span className="precio-por-hoja">
-          Precio por hoja: ${precioPorHoja[impresion.tipoHoja][impresion.color]}
-        </span>
-        <Button
-          type="primary"
-          style={{ marginLeft: 20 }}
-          onClick={handleAgregarPedido}
-        >
-          Agregar al pedido
-        </Button>
-      </div>
+      <Button 
+        type="primary" 
+        block 
+        size="large" 
+        onClick={handleAgregarAlCarrito} 
+        style={{ marginTop: 15 }}
+        disabled={archivos.length === 0}
+      >
+        Agregar {archivos.length > 0 ? `(${archivos.length})` : ''} al Carrito
+      </Button>
     </Card>
   );
 };

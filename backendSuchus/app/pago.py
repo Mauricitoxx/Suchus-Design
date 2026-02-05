@@ -36,7 +36,6 @@ def crear_preferencia(request):
             "failure": "http://localhost:5173/home",
             "pending": "http://localhost:5173/home"
         },
-        #"auto_return": "approved",
         "binary_mode": True  # Recomendado: evita estados de "pago pendiente" intermedios
     }
 
