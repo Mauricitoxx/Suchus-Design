@@ -116,7 +116,8 @@ const usuariosAPI = {
 // ========== PEDIDOS ==========
 const pedidosAPI = {
   getAll: async (params = {}) => {
-    const response = await api.get('pedidos/', { params });
+    const queryParams = { ...params, page_size: 500 };
+    const response = await api.get('pedidos/', { params: queryParams });
     return response.data;
   },
   getById: async (id) => {

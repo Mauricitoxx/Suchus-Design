@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Tag, Select, Button, message, Card, Typography, Space, Modal, Descriptions, Divider, Spin, Input, InputNumber, Tabs, Form } from 'antd';
-import { EyeOutlined, ClockCircleOutlined, ArrowLeftOutlined, SearchOutlined, PlusOutlined, DeleteOutlined, ShoppingOutlined, PrinterOutlined, FilePdfOutlined, FileImageOutlined, UserAddOutlined } from '@ant-design/icons';
+import { Table, Tag, Select, Button, message, Card, Typography, Space, Modal, Descriptions, Divider, Spin, Input, InputNumber, Tabs, Form, DatePicker } from 'antd';
+import { EyeOutlined, ClockCircleOutlined, ArrowLeftOutlined, SearchOutlined, PlusOutlined, DeleteOutlined, ShoppingOutlined, PrinterOutlined, FilePdfOutlined, FileImageOutlined, UserAddOutlined, CalendarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { pedidosAPI, usuariosAPI, productosAPI } from '../../services/api'; 
+import { pedidosAPI, usuariosAPI, productosAPI } from '../../services/api';
+import dayjs from 'dayjs';
 
 const { Title } = Typography;
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 const PedidoAdmin = () => {
   const navigate = useNavigate();
@@ -16,6 +18,7 @@ const PedidoAdmin = () => {
   
   // Estado para la búsqueda
   const [searchText, setSearchText] = useState('');
+  const [rangoFechas, setRangoFechas] = useState(null);
 
   // Estados para Crear Pedido
   const [modalCrearVisible, setModalCrearVisible] = useState(false);
@@ -38,22 +41,38 @@ const PedidoAdmin = () => {
   const [formNuevoCliente] = Form.useForm();
   const [loadingNuevoCliente, setLoadingNuevoCliente] = useState(false);
 
+  // Modal confirmar cancelar pedido
+  const [confirmCancelarVisible, setConfirmCancelarVisible] = useState(false);
+  const [pedidoACancelar, setPedidoACancelar] = useState(null);
+
   const precioPorHoja = {
     A4: { 'blanco y negro': 20, color: 40 },
     A3: { 'blanco y negro': 30, color: 60 },
   };
 
-  const fetchPedidos = async () => {
+  const getColorEstado = (estado) => {
+    const colores = {
+      'En revisión': 'orange',
+      'En proceso': 'blue',
+      'Preparado': 'purple',
+      'Retirado': 'green',
+      'Cancelado': 'volcano',
+    };
+    return colores[estado] ?? 'default';
+  };
+
+  const fetchPedidos = async (rangoOverride = null) => {
     setLoading(true);
     try {
-      const response = await pedidosAPI.getAll();
-      if (response && response.results) {
-        setPedidos(response.results);
-      } else if (Array.isArray(response)) {
-        setPedidos(response);
-      } else {
-        setPedidos([]);
+      const params = {};
+      const range = rangoOverride !== undefined && rangoOverride !== null ? rangoOverride : rangoFechas;
+      if (range && range[0] && range[1]) {
+        params.fecha_desde = range[0].format('YYYY-MM-DD');
+        params.fecha_hasta = range[1].format('YYYY-MM-DD');
       }
+      const response = await pedidosAPI.getAll(params);
+      const lista = (response && response.results) ? response.results : (Array.isArray(response) ? response : []);
+      setPedidos(Array.isArray(lista) ? lista : []);
     } catch (error) {
       console.error("Error al cargar pedidos:", error);
       message.error("Error al conectar con el servidor.");
@@ -407,18 +426,26 @@ const PedidoAdmin = () => {
     });
 
   const columns = [
-    { 
-      title: 'ID', 
-      dataIndex: 'id', 
-      key: 'id', 
-      width: 100,
-      sorter: (a, b) => a.id - b.id, // Flechitas para ordenar
+    {
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 80,
+      sorter: (a, b) => a.id - b.id,
       defaultSortOrder: 'descend',
     },
     {
       title: 'Cliente',
       key: 'cliente',
       render: (_, record) => `${record.usuario_nombre || ''} ${record.usuario_apellido || ''}`,
+    },
+    {
+      title: 'Fecha',
+      dataIndex: 'fecha',
+      key: 'fecha',
+      width: 120,
+      sorter: (a, b) => (a.fecha || '').localeCompare(b.fecha || ''),
+      render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY') : '-',
     },
     {
       title: 'Total',
@@ -440,13 +467,7 @@ const PedidoAdmin = () => {
         { text: 'Cancelado', value: 'Cancelado' },
       ],
       onFilter: (value, record) => record.estado === value,
-      render: (estado) => {
-        let color = 'blue';
-        if (estado === 'Cancelado') color = 'volcano';
-        if (estado === 'Retirado') color = 'green';
-        if (estado === 'Preparado') color = 'gold';
-        return <Tag color={color}>{estado?.toUpperCase() || 'S/E'}</Tag>;
-      },
+      render: (estado) => <Tag color={getColorEstado(estado)}>{estado?.toUpperCase() || 'S/E'}</Tag>,
     },
     {
       title: 'Acciones',
@@ -471,7 +492,14 @@ const PedidoAdmin = () => {
               value={record.estado}
               size="small"
               style={{ width: 140 }}
-              onChange={(value) => handleCambiarEstado(record.id, value)}
+              onChange={(value) => {
+                if (value === 'Cancelado') {
+                  setPedidoACancelar(record.id);
+                  setConfirmCancelarVisible(true);
+                } else {
+                  handleCambiarEstado(record.id, value);
+                }
+              }}
               onClick={(e) => e.stopPropagation()}
             >
               <Option value="En revisión">En revisión</Option>
@@ -487,8 +515,8 @@ const PedidoAdmin = () => {
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Card style={{ marginBottom: '24px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+    <div style={{ padding: '24px', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+      <Card style={{ marginBottom: '24px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
         <div style={{ marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '20px' }}>
             <Button 
@@ -515,6 +543,28 @@ const PedidoAdmin = () => {
             size="large"
             allowClear
           />
+          <RangePicker
+            placeholder={['Desde', 'Hasta']}
+            value={rangoFechas}
+            onChange={(dates) => {
+              const newRange = dates && dates.length === 2 ? dates : null;
+              setRangoFechas(newRange);
+              fetchPedidos(newRange);
+            }}
+            size="large"
+            style={{ minWidth: 240 }}
+            allowClear
+          />
+          <Button
+            icon={<CalendarOutlined />}
+            size="large"
+            onClick={() => {
+              setRangoFechas(null);
+              fetchPedidos(null);
+            }}
+          >
+            Limpiar fechas
+          </Button>
           <Button 
             type="primary" 
             onClick={fetchPedidos} 
@@ -538,25 +588,49 @@ const PedidoAdmin = () => {
       </Card>
 
       <Spin spinning={loading}>
-        <Table 
-          columns={columns} 
-          dataSource={pedidosFiltrados}
-          rowKey="id"
-          pagination={{ 
-            defaultPageSize: 10,
-            showSizeChanger: true,
-            showTotal: (total) => `Total: ${total} pedidos`,
-            pageSizeOptions: ['10', '20', '50', '100']
-          }}
-          scroll={{ x: 'max-content' }}
-          locale={{
-            emptyText: 'No se encontraron pedidos',
-            triggerDesc: 'Click para ordenar descendente',
-            triggerAsc: 'Click para ordenar ascendente',
-            cancelSort: 'Click para cancelar ordenamiento'
-          }}
-        />
+        <div style={{ overflowX: 'auto', width: '100%' }}>
+          <Table
+            columns={columns}
+            dataSource={pedidosFiltrados}
+            rowKey="id"
+            pagination={{
+              defaultPageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total) => `Total: ${total} pedidos`,
+              pageSizeOptions: ['10', '20', '50', '100']
+            }}
+            scroll={{ x: 'max-content' }}
+            locale={{
+              emptyText: 'No se encontraron pedidos',
+              triggerDesc: 'Click para ordenar descendente',
+              triggerAsc: 'Click para ordenar ascendente',
+              cancelSort: 'Click para cancelar ordenamiento'
+            }}
+          />
+        </div>
       </Spin>
+
+      {/* Modal confirmar cancelar pedido */}
+      <Modal
+        title="¿Cancelar pedido?"
+        open={confirmCancelarVisible}
+        onOk={() => {
+          if (pedidoACancelar) {
+            handleCambiarEstado(pedidoACancelar, 'Cancelado');
+          }
+          setConfirmCancelarVisible(false);
+          setPedidoACancelar(null);
+        }}
+        onCancel={() => {
+          setConfirmCancelarVisible(false);
+          setPedidoACancelar(null);
+        }}
+        okText="Sí, cancelar pedido"
+        cancelText="No"
+        okButtonProps={{ danger: true }}
+      >
+        <p>¿Está seguro de dar de baja este pedido? El estado pasará a &quot;Cancelado&quot;.</p>
+      </Modal>
 
       {/* Modal de Detalles de Pedido */}
       <Modal
@@ -566,49 +640,113 @@ const PedidoAdmin = () => {
         footer={[
           <Button key="close" onClick={() => setModalVisible(false)}>Cerrar</Button>
         ]}
-        width={800}
+        width="min(800px, 95vw)"
+        style={{ top: 16 }}
+        styles={{ body: { maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' } }}
       >
         {pedidoSeleccionado ? (
-          <>
-            <Descriptions title="Información del Cliente" bordered column={2}>
-              <Descriptions.Item label="Nombre Completo">
-                {pedidoSeleccionado.usuario_nombre} {pedidoSeleccionado.usuario_apellido}
-              </Descriptions.Item>
-              <Descriptions.Item label="Email">
-                {pedidoSeleccionado.usuario_email}
-              </Descriptions.Item>
-              <Descriptions.Item label="Observaciones" span={2}>
-                {pedidoSeleccionado.observacion || "Sin observaciones adicionales"}
-              </Descriptions.Item>
-            </Descriptions>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ overflowX: 'auto', marginBottom: 16 }}>
+              <div style={{ minWidth: 320 }}>
+                <Descriptions title="Información del Cliente" bordered column={2} size="small">
+                  <Descriptions.Item label="Nombre Completo">
+                    <span style={{ whiteSpace: 'nowrap' }}>{pedidoSeleccionado.usuario_nombre} {pedidoSeleccionado.usuario_apellido}</span>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Email">
+                    <span style={{ whiteSpace: 'nowrap' }}>{pedidoSeleccionado.usuario_email}</span>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Observaciones" span={2}>
+                    {pedidoSeleccionado.observacion || "Sin observaciones adicionales"}
+                  </Descriptions.Item>
+                </Descriptions>
+              </div>
+            </div>
 
             <Divider orientation="left">Productos Solicitados</Divider>
-            
-            <Table
-              dataSource={pedidoSeleccionado.detalles || []}
-              pagination={false}
-              rowKey="id"
-              size="small"
-              columns={[
-                { title: 'Producto', dataIndex: 'fk_producto_nombre' },
-                { title: 'Cantidad', dataIndex: 'cantidad', align: 'center' },
-                { 
-                  title: 'Precio Unitario', 
-                  dataIndex: 'fk_producto_precio', 
-                  render: (p) => `$${Number(p).toLocaleString()}` 
-                },
-                { 
-                  title: 'Subtotal', 
-                  dataIndex: 'subtotal', 
-                  render: (s) => <strong>${Number(s).toLocaleString()}</strong> 
-                },
-              ]}
-            />
+
+            <div style={{ overflowX: 'auto', marginBottom: 16 }}>
+              <Table
+                dataSource={pedidoSeleccionado.detalles || []}
+                pagination={false}
+                rowKey="id"
+                size="small"
+                scroll={{ x: 'max-content' }}
+                columns={[
+                  { title: 'Producto', dataIndex: 'fk_producto_nombre', ellipsis: true },
+                  { title: 'Cantidad', dataIndex: 'cantidad', align: 'center', width: 80 },
+                  {
+                    title: 'Precio Unit.',
+                    dataIndex: 'fk_producto_precio',
+                    width: 100,
+                    render: (p) => `$${Number(p).toLocaleString()}`
+                  },
+                  {
+                    title: 'Subtotal',
+                    dataIndex: 'subtotal',
+                    width: 100,
+                    render: (s) => <strong>${Number(s).toLocaleString()}</strong>
+                  },
+                ]}
+              />
+            </div>
+
+            {(pedidoSeleccionado.detalle_impresiones && pedidoSeleccionado.detalle_impresiones.length > 0) && (
+              <>
+                <Divider orientation="left">Impresiones</Divider>
+                <div style={{ overflowX: 'auto', marginBottom: 16 }}>
+                  <Table
+                    dataSource={pedidoSeleccionado.detalle_impresiones}
+                    pagination={false}
+                    rowKey="id"
+                    size="small"
+                    scroll={{ x: 'max-content' }}
+                    columns={[
+                      { title: 'Archivo', dataIndex: 'nombre_archivo', ellipsis: true },
+                      { title: 'Formato', dataIndex: 'formato', width: 80 },
+                      { title: 'Color', dataIndex: 'color', width: 120 },
+                      { title: 'Copias', dataIndex: 'cantidadCopias', align: 'center', width: 80 },
+                      {
+                        title: 'Subtotal',
+                        dataIndex: 'subtotal',
+                        width: 100,
+                        render: (s) => <strong>${Number(s).toLocaleString()}</strong>
+                      },
+                    ]}
+                  />
+                </div>
+              </>
+            )}
+
+            <Divider orientation="left">Historial de estados</Divider>
+            <div style={{ overflowX: 'auto', marginBottom: 16 }}>
+              <Table
+                dataSource={pedidoSeleccionado.historial_estados || []}
+                pagination={false}
+                rowKey={(r) => r.id ?? `estado-${r.fecha}`}
+                size="small"
+                scroll={{ x: 'max-content' }}
+                columns={[
+                  {
+                    title: 'Fecha y hora',
+                    dataIndex: 'fecha',
+                    key: 'fecha',
+                    width: 140,
+                    render: (f) => f ? dayjs(f).format('DD/MM/YYYY HH:mm') : '-'
+                  },
+                  {
+                    title: 'Estado',
+                    dataIndex: 'estado',
+                    key: 'estado',
+                    render: (estado) => <Tag color={getColorEstado(estado)}>{estado}</Tag>
+                  },
+                ]}
+              />
+            </div>
 
             <div style={{ textAlign: 'right', marginTop: '24px' }}>
               <Title level={3}>TOTAL: ${Number(pedidoSeleccionado.total).toLocaleString()}</Title>
             </div>
-          </>
+          </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '50px' }}>
             <Spin size="large" />

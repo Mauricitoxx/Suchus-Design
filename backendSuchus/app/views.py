@@ -13,7 +13,7 @@ from datetime import timedelta
 import boto3
 import uuid
 import os
-from .models import Usuario, Pedido, Impresion, Producto, UsuarioTipo, PedidoProductoDetalle, PedidoImpresionDetalle
+from .models import Usuario, Pedido, Impresion, Producto, UsuarioTipo, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial
 from .serializers import (UsuarioRegisterSerializer, UsuarioLoginSerializer, PedidoSerializer, 
                           ImpresionSerializer, ProductoSerializer, UsuarioSerializer,
                           UsuarioCreateSerializer, UsuarioUpdateSerializer)
@@ -117,27 +117,34 @@ class PedidoViewSet(viewsets.ModelViewSet):
         queryset = Pedido.objects.all()
         usuario_id = self.request.query_params.get('usuario_id', None)
         estado = self.request.query_params.get('estado', None)
-        
+        fecha_desde = self.request.query_params.get('fecha_desde', None)
+        fecha_hasta = self.request.query_params.get('fecha_hasta', None)
+
         if usuario_id is not None:
             queryset = queryset.filter(fk_usuario_id=usuario_id)
         if estado is not None:
             queryset = queryset.filter(estado=estado)
-            
+        if fecha_desde:
+            queryset = queryset.filter(fecha__gte=fecha_desde)
+        if fecha_hasta:
+            queryset = queryset.filter(fecha__lte=fecha_hasta)
+
         return queryset.order_by('-id')
     
     @action(detail=True, methods=['patch'])
     def cambiar_estado(self, request, pk=None):
         pedido = self.get_object()
         nuevo_estado = request.data.get('estado')
-        
+
         if nuevo_estado in dict(Pedido.ESTADO).keys():
             pedido.estado = nuevo_estado
             pedido.save()
+            PedidoEstadoHistorial.objects.create(fk_pedido=pedido, estado=nuevo_estado)
             serializer = self.get_serializer(pedido)
             return Response(serializer.data)
-        
+
         return Response(
-            {"error": "Estado inválido"}, 
+            {"error": "Estado inválido"},
             status=status.HTTP_400_BAD_REQUEST
         )
     def create(self, request, *args, **kwargs):
@@ -166,10 +173,11 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
         # Crear el pedido
         pedido = Pedido.objects.create(
-            fk_usuario=usuario_pedido, 
+            fk_usuario=usuario_pedido,
             total=0,
             observacion=observacion
         )
+        PedidoEstadoHistorial.objects.create(fk_pedido=pedido, estado=pedido.estado)
 
         total = 0
 

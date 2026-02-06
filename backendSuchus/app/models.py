@@ -51,6 +51,21 @@ class Pedido(models.Model):
         return f"Pedido #{self.id} - {self.fk_usuario.nombre}"
 
 
+class PedidoEstadoHistorial(models.Model):
+    """Registro de cada cambio de estado de un pedido."""
+    fk_pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='historial_estados')
+    estado = models.CharField(max_length=100, choices=Pedido.ESTADO)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['fecha']
+        verbose_name = 'Historial de estado de pedido'
+        verbose_name_plural = 'Historial de estados de pedidos'
+
+    def __str__(self):
+        return f"Pedido {self.fk_pedido_id} - {self.estado} ({self.fecha})"
+
+
 class Producto(models.Model):
     nombre = models.CharField(max_length=100, null=False)
     descripcion = models.TextField(null=False)

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Usuario, UsuarioTipo, Pedido, Impresion, Producto,PedidoProductoDetalle
+from .models import Usuario, UsuarioTipo, Pedido, Impresion, Producto, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial
 
 
 
@@ -192,18 +192,62 @@ class PedidoProductoDetalleSerializer(serializers.ModelSerializer):
         model = PedidoProductoDetalle
         fields = ['id', 'fk_producto', 'fk_producto_nombre', 'fk_producto_precio', 'cantidad', 'subtotal']
 
+
+class PedidoImpresionDetalleSerializer(serializers.ModelSerializer):
+    nombre_archivo = serializers.CharField(source='fk_impresion.nombre_archivo', read_only=True)
+    formato = serializers.CharField(source='fk_impresion.formato', read_only=True)
+    color = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = PedidoImpresionDetalle
+        fields = ['id', 'nombre_archivo', 'formato', 'color', 'cantidadCopias', 'subtotal']
+
+    def get_color(self, obj):
+        return 'Color' if obj.fk_impresion.color else 'Blanco y negro'
+
+
+class PedidoEstadoHistorialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PedidoEstadoHistorial
+        fields = ['id', 'estado', 'fecha']
+
+
 class PedidoSerializer(serializers.ModelSerializer):
     usuario_nombre = serializers.CharField(source='fk_usuario.nombre', read_only=True)
     usuario_apellido = serializers.CharField(source='fk_usuario.apellido', read_only=True)
     usuario_email = serializers.EmailField(source='fk_usuario.email', read_only=True)
-    
+
     detalles = PedidoProductoDetalleSerializer(many=True, read_only=True, source='pedidoproductodetalle_set')
-    
+    detalle_impresiones = PedidoImpresionDetalleSerializer(many=True, read_only=True, source='pedidoimpresiondetalle_set')
+    historial_estados = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = Pedido
-        fields = ['id', 'estado', 'observacion', 'total', 'fk_usuario', 
-                  'usuario_nombre', 'usuario_apellido', 'usuario_email', 'detalles']
+        fields = ['id', 'estado', 'observacion', 'total', 'fecha', 'fk_usuario',
+                  'usuario_nombre', 'usuario_apellido', 'usuario_email', 'detalles', 'detalle_impresiones', 'historial_estados']
         read_only_fields = ['id']
+
+    def get_historial_estados(self, obj):
+        from django.utils import timezone
+        try:
+            historial = obj.historial_estados.all().order_by('fecha')
+            if historial.exists():
+                lista = PedidoEstadoHistorialSerializer(historial, many=True).data
+                # Siempre incluir el estado inicial "En revisión" si no está en el historial
+                primera_fecha = obj.created_at if obj.created_at else timezone.now()
+                if lista and lista[0].get('estado') != 'En revisión':
+                    entrada_inicial = {
+                        'id': None,
+                        'estado': 'En revisión',
+                        'fecha': primera_fecha.isoformat() if hasattr(primera_fecha, 'isoformat') else str(primera_fecha)
+                    }
+                    lista = [entrada_inicial] + list(lista)
+                return lista
+        except Exception:
+            pass
+        # Pedidos sin historial o si falla la consulta: mostrar estado actual con fecha de creación
+        fecha = obj.created_at if obj.created_at else timezone.now()
+        return [{'id': None, 'estado': obj.estado, 'fecha': fecha.isoformat() if hasattr(fecha, 'isoformat') else str(fecha)}]
 
 class ImpresionSerializer(serializers.ModelSerializer):
     archivo = serializers.FileField(write_only=True, required=False)
