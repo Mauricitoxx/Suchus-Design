@@ -6,7 +6,7 @@ Versión Final Blindada para Koyeb + Neon - CORREGIDA
 from pathlib import Path
 import os
 from datetime import timedelta
-
+from django.conf.urls.static import static
 # 1. DEFINICIÓN DE BASE_DIR (Mover arriba para usarlo en load_dotenv)
 BASE_DIR = Path(__file__).resolve().parent.parent
 
