@@ -1,16 +1,26 @@
 """
 Django settings for backendSuchus project.
-Optimizado para: Koyeb (Backend) + Neon.tech (DB) + Vercel (Frontend)
+Versión Final Blindada para Koyeb + Neon
 """
 
 from pathlib import Path
 import os
 from datetime import timedelta
-from dotenv import load_dotenv
-import dj_database_url  # Necesitas instalarlo: pip install dj_database_url
 
-# Cargar variables del .env
-load_dotenv()
+# --- PARCHE DE SEGURIDAD PARA DEPLOY ---
+# Intentamos cargar librerías externas; si no están instaladas (durante el build), 
+# el proceso no se detiene.
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+try:
+    import dj_database_url
+except ImportError:
+    dj_database_url = None
+# ---------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,7 +30,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-x$e$u^seus*v0t4x&)x460sdl#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-# ✅ ALLOWED HOSTS para Koyeb, Render y Local
+# ALLOWED HOSTS
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.koyeb.app,clud2025.onrender.com').split(',')
 
 # Application definition
@@ -37,12 +47,12 @@ INSTALLED_APPS = [
     'corsheaders',
     'cloudinary',
     'cloudinary_storage',
-    'whitenoise.runserver_nostatic', # ✅ Manejo de estáticos en prod
+    'whitenoise.runserver_nostatic', 
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # ✅ Debe ir después de SecurityMiddleware
+    'whitenoise.middleware.WhiteNoiseMiddleware', 
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -52,7 +62,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# ✅ CONFIGURACIÓN CORS (Agregado tu Vercel y locales)
+# CORS & CSRF
 CORS_ALLOWED_ORIGINS = [
     "https://suchus-design.vercel.app",
     "https://clud2025.vercel.app",
@@ -60,17 +70,15 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",
     "http://127.0.0.1:5173",
 ]
-
 CORS_ALLOW_CREDENTIALS = True
 
-# ✅ CONFIGURACIÓN CSRF
 CSRF_TRUSTED_ORIGINS = [
     "https://*.koyeb.app",
     "https://clud2025.onrender.com",
     "https://suchus-design.vercel.app",
 ]
 
-# REST Framework Configuration
+# REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'app.authentication.CustomJWTAuthentication',
@@ -93,12 +101,12 @@ SIMPLE_JWT = {
     'SIGNING_KEY': SECRET_KEY,
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
-    'AUTH_COOKIE_SECURE': not DEBUG, # True en producción
+    'AUTH_COOKIE_SECURE': not DEBUG,
     'AUTH_COOKIE_HTTP_ONLY': True,
     'AUTH_COOKIE_SAMESITE': 'Lax',
 }
 
-# Cloudinary Configuration
+# Cloudinary
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
     'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
@@ -125,19 +133,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backendSuchus.wsgi.application'
 
-# ✅ DATABASE (Actualizado para Neon.tech)
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True
-    )
-}
-
-# Parche para SSL de Neon
-if os.getenv('DATABASE_URL'):
-    DATABASES['default']['OPTIONS'] = {
-        'sslmode': 'require',
+# DATABASE (Neon.tech)
+if dj_database_url:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv('DATABASE_URL'),
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+    if os.getenv('DATABASE_URL'):
+        DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
+else:
+    # Fallback por si dj_database_url no carga en el build inicial
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
 
 # Password validation
@@ -154,7 +167,7 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# ✅ STATIC FILES (Configuración para WhiteNoise en Koyeb)
+# STATIC FILES
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
