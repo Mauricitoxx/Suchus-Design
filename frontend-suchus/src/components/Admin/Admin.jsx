@@ -5,7 +5,8 @@ import {
   ShoppingOutlined, 
   ArrowLeftOutlined, 
   FileTextOutlined, 
-  PercentageOutlined 
+  PercentageOutlined,
+  BarChartOutlined 
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import authService from "../../services/auth";
@@ -206,6 +207,17 @@ const Admin = () => {
                 <p>Configura beneficios por tipo de usuario</p>
               </div>
               <Button type="primary" block size="large" style={{ marginTop: 16, backgroundColor: '#eb2f96', borderColor: '#eb2f96' }}>Gestionar</Button>
+            </Card>
+          </Col>
+
+          <Col xs={24} md={8}>
+            <Card hoverable onClick={() => navigate("/admin/reportes")} style={cardStyle} bodyStyle={cardBodyStyle}>
+              <div>
+                <BarChartOutlined style={{ fontSize: 50, color: "#722ed1", marginBottom: 16 }} />
+                <h3>Reportes</h3>
+                <p>Análisis integral de ventas y métricas</p>
+              </div>
+              <Button type="primary" block size="large" style={{ marginTop: 16, backgroundColor: '#722ed1', borderColor: '#722ed1' }}>Gestionar</Button>
             </Card>
           </Col>
         </Row>
