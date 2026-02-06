@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container { font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; }
+        .header { background-color: #722ed1; color: white; padding: 20px; text-align: center; }
+        .content { padding: 30px; color: #333; line-height: 1.6; }
+        .box { background-color: #f9f0ff; border-left: 4px solid #722ed1; padding: 15px; margin: 20px 0; }
+        .footer { text-align: center; font-size: 12px; color: #888; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="margin: 0;">{{ titulo }}</h2>
+        </div>
+        <div class="content">
+            <p>Hola,</p>
+            <p>Se ha generado el balance automático de las ventas de hoy:</p>
+            
+            <div class="box">
+                <p style="margin: 5px 0;"><strong>💰 Monto Total:</strong> ${{ monto }}</p>
+                <p style="margin: 5px 0;"><strong>📦 Pedidos Realizados:</strong> {{ pedidos }}</p>
+                <p style="margin: 5px 0;"><strong>🎫 Ticket Promedio:</strong> ${{ ticket }}</p>
+            </div>
+
+            <p>Encontrarás el desglose detallado en el archivo Excel adjunto a este correo.</p>
+        </div>
+        <div class="footer">
+            Este es un correo automático generado por el Sistema Suchus.
+        </div>
+    </div>
+</body>
+</html>
