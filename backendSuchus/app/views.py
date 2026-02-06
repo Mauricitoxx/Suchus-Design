@@ -13,7 +13,7 @@ from datetime import timedelta
 import boto3
 import uuid
 import os
-from .models import Usuario, Pedido, Impresion, Producto, UsuarioTipo, PedidoProductoDetalle
+from .models import Usuario, Pedido, Impresion, Producto, UsuarioTipo, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial
 from .serializers import (UsuarioRegisterSerializer, UsuarioLoginSerializer, PedidoSerializer, 
                           ImpresionSerializer, ProductoSerializer, UsuarioSerializer,
                           UsuarioCreateSerializer, UsuarioUpdateSerializer)
@@ -40,10 +40,15 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         email = attrs.get(self.username_field)
         password = attrs.get('password')
         
+        # Primero verificar si el usuario existe (activo o inactivo)
         try:
-            user = Usuario.objects.get(email=email, activo=True)
+            user = Usuario.objects.get(email=email)
         except Usuario.DoesNotExist:
             raise AuthenticationFailed('Credenciales inválidas')
+        
+        # Verificar si el usuario está inactivo
+        if not user.activo:
+            raise AuthenticationFailed('Usuario inactivo')
         
         # Check password manually since Usuario uses custom password handling
         if not check_password(password, user.contraseña):
@@ -112,39 +117,72 @@ class PedidoViewSet(viewsets.ModelViewSet):
         queryset = Pedido.objects.all()
         usuario_id = self.request.query_params.get('usuario_id', None)
         estado = self.request.query_params.get('estado', None)
-        
+        fecha_desde = self.request.query_params.get('fecha_desde', None)
+        fecha_hasta = self.request.query_params.get('fecha_hasta', None)
+
         if usuario_id is not None:
             queryset = queryset.filter(fk_usuario_id=usuario_id)
         if estado is not None:
             queryset = queryset.filter(estado=estado)
-            
+        if fecha_desde:
+            queryset = queryset.filter(fecha__gte=fecha_desde)
+        if fecha_hasta:
+            queryset = queryset.filter(fecha__lte=fecha_hasta)
+
         return queryset.order_by('-id')
     
     @action(detail=True, methods=['patch'])
     def cambiar_estado(self, request, pk=None):
         pedido = self.get_object()
         nuevo_estado = request.data.get('estado')
-        
+
         if nuevo_estado in dict(Pedido.ESTADO).keys():
             pedido.estado = nuevo_estado
             pedido.save()
+            PedidoEstadoHistorial.objects.create(fk_pedido=pedido, estado=nuevo_estado)
             serializer = self.get_serializer(pedido)
             return Response(serializer.data)
-        
+
         return Response(
-            {"error": "Estado inválido"}, 
+            {"error": "Estado inválido"},
             status=status.HTTP_400_BAD_REQUEST
         )
     def create(self, request, *args, **kwargs):
         # El usuario autenticado se obtiene del JWT en la cookie
         user = request.user
         datos = request.data
-        detalles = datos.get('detalles', [])
+        detalles_productos = datos.get('detalles', [])
+        detalles_impresiones = datos.get('impresiones', [])
+        observacion = datos.get('observacion', '')
 
-        pedido = Pedido.objects.create(fk_usuario=user, total=0)
+        # Si el usuario es Admin y se proporciona fk_usuario, usar ese usuario
+        # Si no, usar el usuario autenticado (comportamiento normal para clientes)
+        usuario_pedido_id = datos.get('fk_usuario')
+        if usuario_pedido_id and user.es_admin():
+            # Admin puede crear pedido para cualquier usuario
+            try:
+                usuario_pedido = Usuario.objects.get(id=usuario_pedido_id, activo=True)
+            except Usuario.DoesNotExist:
+                return Response(
+                    {"error": "Usuario no encontrado o inactivo"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            # Usuario normal crea pedido para sí mismo
+            usuario_pedido = user
+
+        # Crear el pedido
+        pedido = Pedido.objects.create(
+            fk_usuario=usuario_pedido,
+            total=0,
+            observacion=observacion
+        )
+        PedidoEstadoHistorial.objects.create(fk_pedido=pedido, estado=pedido.estado)
 
         total = 0
-        for det in detalles:
+
+        # Agregar productos al pedido
+        for det in detalles_productos:
             producto_id = det['fk_producto']
             cantidad = det['cantidad']
             subtotal = cantidad * det.get('precio_unitario', 0)
@@ -153,6 +191,27 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 fk_pedido=pedido,
                 fk_producto_id=producto_id,
                 cantidad=cantidad,
+                subtotal=subtotal
+            )
+
+        # Agregar impresiones al pedido
+        for imp in detalles_impresiones:
+            # Crear registro de impresión primero
+            impresion = Impresion.objects.create(
+                color=(imp['color'] == 'color'),
+                formato=imp['formato'],
+                url='',  # URL vacía para pedidos creados manualmente
+                nombre_archivo=imp['nombre_archivo'],
+                fk_usuario=usuario_pedido
+            )
+            
+            subtotal = imp.get('precio_unitario', 0) * imp.get('copias', 1)
+            total += subtotal
+            
+            PedidoImpresionDetalle.objects.create(
+                fk_pedido=pedido,
+                fk_impresion=impresion,
+                cantidadCopias=imp.get('copias', 1),
                 subtotal=subtotal
             )
 

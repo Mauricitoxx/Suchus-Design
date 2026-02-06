@@ -223,9 +223,9 @@ const ProductosAdmin = () => {
             
             <div>
               <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', margin: 0 }}>
-                Gestión de Usuarios
+                Gestión de Productos
               </h1>
-              <p style={{ color: '#666', margin: 0 }}>Administra los usuarios del sistema</p>
+              <p style={{ color: '#666', margin: 0 }}>Administra los productos del sistema</p>
             </div>
           </div>
         </div>
