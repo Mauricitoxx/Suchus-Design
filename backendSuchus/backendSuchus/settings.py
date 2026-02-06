@@ -1,18 +1,21 @@
 """
 Django settings for backendSuchus project.
-Versión Final Blindada para Koyeb + Neon
+Versión Final Blindada para Koyeb + Neon - CORREGIDA
 """
 
 from pathlib import Path
 import os
 from datetime import timedelta
 
-# --- PARCHE DE SEGURIDAD PARA DEPLOY ---
-# Intentamos cargar librerías externas; si no están instaladas (durante el build), 
-# el proceso no se detiene.
+# 1. DEFINICIÓN DE BASE_DIR (Mover arriba para usarlo en load_dotenv)
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# 2. CARGA EXPLÍCITA DEL .ENV
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    # Buscamos el archivo .env específicamente en la raíz del proyecto
+    env_path = os.path.join(BASE_DIR, '.env')
+    load_dotenv(env_path)
 except ImportError:
     pass
 
@@ -20,20 +23,16 @@ try:
     import dj_database_url
 except ImportError:
     dj_database_url = None
-# ---------------------------------------
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-# SECURITY WARNING: keep the secret key used in production secret!
+# --- CONFIGURACIÓN DE SEGURIDAD ---
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-x$e$u^seus*v0t4x&)x460sdl#n&^bs@pl)h0koo)njqmz$%4t')
 
-# SECURITY WARNING: don't run with debug turned on in production!
+# En producción DEBUG debe ser False. En local debe ser True en el .env
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-# ALLOWED HOSTS
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.koyeb.app,clud2025.onrender.com').split(',')
 
-# Application definition
+# --- DEFINICIÓN DE APLICACIONES ---
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -41,7 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'app',
+    'app', # Tu aplicación de fotocopiadora
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
@@ -62,7 +61,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# CORS & CSRF
+# --- CONFIGURACIÓN DE CORS & CSRF ---
 CORS_ALLOWED_ORIGINS = [
     "https://suchus-design.vercel.app",
     "https://clud2025.vercel.app",
@@ -78,7 +77,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://suchus-design.vercel.app",
 ]
 
-# REST Framework
+# --- REST FRAMEWORK & JWT ---
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'app.authentication.CustomJWTAuthentication',
@@ -90,7 +89,6 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 100,
 }
 
-# JWT Configuration
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
@@ -106,7 +104,7 @@ SIMPLE_JWT = {
     'AUTH_COOKIE_SAMESITE': 'Lax',
 }
 
-# Cloudinary
+# --- CLOUDINARY ---
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
     'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
@@ -133,19 +131,42 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backendSuchus.wsgi.application'
 
-# DATABASE (Neon.tech)
-if dj_database_url:
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL'),
-            conn_max_age=600,
-            ssl_require=True
-        )
-    }
-    if os.getenv('DATABASE_URL'):
-        DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
+# --- CONFIGURACIÓN DE BASE DE DATOS (SUPER REFORZADA) ---
+
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if DATABASE_URL:
+    print(f"✅ Intentando conectar a Neon: {DATABASE_URL[:30]}...")
+    
+    # Si dj_database_url funciona, lo usamos (es lo ideal)
+    if dj_database_url:
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=DATABASE_URL,
+                conn_max_age=600,
+                ssl_require=True
+            )
+        }
+    else:
+        # PLAN B: Configuración manual si dj_database_url falla
+        print("⚠️ dj_database_url no disponible, usando configuración manual.")
+        import urllib.parse as urlparse
+        url = urlparse.urlparse(DATABASE_URL)
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': url.path[1:],
+                'USER': url.username,
+                'PASSWORD': url.password,
+                'HOST': url.hostname,
+                'PORT': url.port or 5432,
+            }
+        }
+    
+    # Esto es vital para Neon
+    DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
 else:
-    # Fallback por si dj_database_url no carga en el build inicial
+    print("❌ No hay DATABASE_URL, usando SQLite.")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -153,7 +174,8 @@ else:
         }
     }
 
-# Password validation
+
+# --- VALIDACIÓN DE CONTRASEÑAS ---
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -161,18 +183,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
+# --- INTERNACIONALIZACIÓN ---
 LANGUAGE_CODE = 'es-ar'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# STATIC FILES
+# --- ARCHIVOS ESTÁTICOS ---
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Mercado Pago
+# --- MERCADO PAGO ---
+# Prioriza el token del .env si existe, sino usa el fallback
 MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "APP_USR-5006527019840999-020415-bd90aef781be9ac6dbb5908fdf64bbf6-3182278274")
