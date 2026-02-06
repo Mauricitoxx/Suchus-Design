@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Row, Col, Input, Modal, message, Spin } from "antd";
+import { Card, Button, Row, Col, Input, Modal, message, Spin, Form } from "antd";
 import { 
   UserOutlined, 
   ShoppingOutlined, 
@@ -9,19 +9,26 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import authService from "../../services/auth";
+import { usuariosAPI } from "../../services/api";
 
 const Admin = () => {
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Estados para el formulario de contraseña
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Estado para marcar error en la contraseña actual (Backend)
+  const [currentPasswordError, setCurrentPasswordError] = useState(false);
 
   useEffect(() => {
-    // Obtener datos del usuario al cargar el componente
     const currentUser = authService.getCurrentUser();
+    console.log("DEBUG - Usuario cargado en Admin:", currentUser);
+    
     if (currentUser) {
       setUser(currentUser);
     } else {
@@ -35,15 +42,29 @@ const Admin = () => {
     setVisible(true);
   };
 
-  const handleOk = () => {
-    if (!newPassword || !confirmPassword || !currentPassword) {
+  const handleCancel = () => {
+    setVisible(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setCurrentPasswordError(false);
+  };
+
+  const handleOk = async () => {
+    console.log("--- Iniciando proceso de cambio de contraseña ---");
+    setCurrentPasswordError(false);
+
+    // 1. Validaciones básicas
+    if (!currentPassword || !newPassword || !confirmPassword) {
       message.error('Por favor completa todos los campos');
       return;
     }
 
+    // 2. VALIDACIÓN DE COINCIDENCIA (Frontend)
     if (newPassword !== confirmPassword) {
-      message.error('Las contraseñas no coinciden');
-      return;
+      console.error("BLOQUEADO: Las contraseñas nuevas no coinciden.");
+      message.error('Las contraseñas no coinciden. Verificá los campos en rojo.');
+      return; 
     }
 
     if (newPassword.length < 6) {
@@ -51,19 +72,58 @@ const Admin = () => {
       return;
     }
 
-    // Aquí iría la lógica real para cambiar la contraseña
-    message.success('Contraseña actualizada correctamente');
-    setVisible(false);
-    setNewPassword("");
-    setConfirmPassword("");
-    setCurrentPassword("");
+    try {
+      const payload = {
+        contraseña_actual: currentPassword,
+        contraseña_nueva: newPassword,
+        confirmar_contraseña: confirmPassword
+      };
+
+      console.log("Enviando al backend para ID:", user.id, payload);
+      
+      const response = await usuariosAPI.cambiarPassword(user.id, payload);
+      
+      console.log("¡Éxito! Contraseña actualizada.");
+      message.success(response.mensaje || 'Contraseña actualizada correctamente');
+      handleCancel();
+    } catch (error) {
+      console.error("DEBUG - Error 400 u otro del servidor:", error.response?.data);
+      
+      const errorData = error.response?.data || {};
+      const msg = errorData.error || 'Error: La contraseña actual es incorrecta';
+      
+      // Si el error es de la contraseña actual, activamos el rojo
+      if (msg.toLowerCase().includes("actual") || msg.toLowerCase().includes("incorrecta")) {
+        setCurrentPasswordError(true);
+      }
+      
+      message.error(msg);
+    }
   };
 
-  const handleCancel = () => {
-    setVisible(false);
-    setNewPassword("");
-    setConfirmPassword("");
-    setCurrentPassword("");
+  // Función para determinar si mostrar error en rojo en el input de confirmación
+  const getConfirmValidationStatus = () => {
+    if (confirmPassword.length > 0 && confirmPassword !== newPassword) {
+      return {
+        validateStatus: 'error',
+        help: 'Las contraseñas no coinciden'
+      };
+    }
+    if (confirmPassword.length > 0 && confirmPassword === newPassword) {
+      return { validateStatus: 'success' };
+    }
+    return {};
+  };
+
+  // Función para el estado de la contraseña actual (viniendo del backend)
+  const getCurrentValidationStatus = () => {
+    if (currentPasswordError) {
+      return {
+        validateStatus: 'error',
+        help: 'La contraseña actual es incorrecta'
+      };
+    }
+    return {};
   };
 
   if (loading) {
@@ -74,25 +134,10 @@ const Admin = () => {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
-  // Estilo común para alinear botones al fondo
-  const cardStyle = {
-    textAlign: "center",
-    height: "100%",
-    display: 'flex',
-    flexDirection: 'column'
-  };
-
-  const cardBodyStyle = {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    padding: '20px'
-  };
+  const cardStyle = { textAlign: "center", height: "100%", display: 'flex', flexDirection: 'column' };
+  const cardBodyStyle = { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px' };
 
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto", padding: 24 }}>
@@ -120,98 +165,49 @@ const Admin = () => {
 
       <Card title="Panel de Administración" bordered style={{ marginTop: 24 }}>
         <Row gutter={[24, 24]}>
-          
-          {/* Usuarios */}
           <Col xs={24} md={8}>
-            <Card
-              hoverable
-              onClick={() => navigate("/admin/usuarios")}
-              style={cardStyle}
-              bodyStyle={cardBodyStyle}
-            >
+            <Card hoverable onClick={() => navigate("/admin/usuarios")} style={cardStyle} bodyStyle={cardBodyStyle}>
               <div>
                 <UserOutlined style={{ fontSize: 50, color: "#1890ff", marginBottom: 16 }} />
                 <h3>Usuarios</h3>
                 <p>Administra usuarios y permisos</p>
               </div>
-              <Button type="primary" block size="large" style={{ marginTop: 16 }}>
-                Gestionar
-              </Button>
+              <Button type="primary" block size="large" style={{ marginTop: 16 }}>Gestionar</Button>
             </Card>
           </Col>
 
-          {/* Productos */}
           <Col xs={24} md={8}>
-            <Card
-              hoverable
-              onClick={() => navigate("/admin/productos")}
-              style={cardStyle}
-              bodyStyle={cardBodyStyle}
-            >
+            <Card hoverable onClick={() => navigate("/admin/productos")} style={cardStyle} bodyStyle={cardBodyStyle}>
               <div>
                 <ShoppingOutlined style={{ fontSize: 50, color: "#52c41a", marginBottom: 16 }} />
                 <h3>Productos</h3>
                 <p>Administra precios y stock</p>
               </div>
-              <Button 
-                type="primary" 
-                block 
-                size="large"
-                style={{ marginTop: 16, backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-              >
-                Gestionar
-              </Button>
+              <Button type="primary" block size="large" style={{ marginTop: 16, backgroundColor: '#52c41a', borderColor: '#52c41a' }}>Gestionar</Button>
             </Card>
           </Col>
 
-          {/* Pedidos */}
           <Col xs={24} md={8}>
-            <Card
-              hoverable
-              onClick={() => navigate("/admin/pedidos")}
-              style={cardStyle}
-              bodyStyle={cardBodyStyle}
-            >
+            <Card hoverable onClick={() => navigate("/admin/pedidos")} style={cardStyle} bodyStyle={cardBodyStyle}>
               <div>
                 <FileTextOutlined style={{ fontSize: 50, color: "#faad14", marginBottom: 16 }} />
                 <h3>Pedidos</h3>
                 <p>Control de ventas y estados</p>
               </div>
-              <Button 
-                type="primary" 
-                block 
-                size="large"
-                style={{ marginTop: 16, backgroundColor: '#faad14', borderColor: '#faad14' }}
-              >
-                Gestionar
-              </Button>
+              <Button type="primary" block size="large" style={{ marginTop: 16, backgroundColor: '#faad14', borderColor: '#faad14' }}>Gestionar</Button>
             </Card>
           </Col>
 
-          {/* Gestión de Descuentos (NUEVO) */}
           <Col xs={24} md={8}>
-            <Card
-              hoverable
-              onClick={() => navigate("/admin/descuentos")}
-              style={cardStyle}
-              bodyStyle={cardBodyStyle}
-            >
+            <Card hoverable onClick={() => navigate("/admin/descuentos")} style={cardStyle} bodyStyle={cardBodyStyle}>
               <div>
                 <PercentageOutlined style={{ fontSize: 50, color: "#eb2f96", marginBottom: 16 }} />
                 <h3>Descuentos</h3>
                 <p>Configura beneficios por tipo de usuario</p>
               </div>
-              <Button 
-                type="primary" 
-                block 
-                size="large"
-                style={{ marginTop: 16, backgroundColor: '#eb2f96', borderColor: '#eb2f96' }}
-              >
-                Gestionar
-              </Button>
+              <Button type="primary" block size="large" style={{ marginTop: 16, backgroundColor: '#eb2f96', borderColor: '#eb2f96' }}>Gestionar</Button>
             </Card>
           </Col>
-          
         </Row>
       </Card>
 
@@ -223,33 +219,41 @@ const Admin = () => {
         okText="Guardar"
         cancelText="Cancelar"
       >
-        <div style={{ marginBottom: 16 }}>
-          <label>Contraseña Actual:</label>
-          <Input.Password
-            placeholder="Tu contraseña actual"
-            value={currentPassword}
-            onChange={e => setCurrentPassword(e.target.value)}
-            style={{ marginTop: 8 }}
-          />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label>Nueva Contraseña:</label>
-          <Input.Password
-            placeholder="Nueva contraseña (mínimo 6 caracteres)"
-            value={newPassword}
-            onChange={e => setNewPassword(e.target.value)}
-            style={{ marginTop: 8 }}
-          />
-        </div>
-        <div>
-          <label>Confirmar Nueva Contraseña:</label>
-          <Input.Password
-            placeholder="Repetir nueva contraseña"
-            value={confirmPassword}
-            onChange={e => setConfirmPassword(e.target.value)}
-            style={{ marginTop: 8 }}
-          />
-        </div>
+        <Form layout="vertical">
+          {/* CAMPO CON VALIDACIÓN DE BACKEND */}
+          <Form.Item 
+            label="Contraseña Actual"
+            {...getCurrentValidationStatus()}
+          >
+            <Input.Password
+              placeholder="Tu contraseña actual"
+              value={currentPassword}
+              onChange={e => {
+                setCurrentPassword(e.target.value);
+                if (currentPasswordError) setCurrentPasswordError(false);
+              }}
+            />
+          </Form.Item>
+
+          <Form.Item label="Nueva Contraseña">
+            <Input.Password
+              placeholder="Mínimo 6 caracteres"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+            />
+          </Form.Item>
+
+          <Form.Item 
+            label="Confirmar Nueva Contraseña"
+            {...getConfirmValidationStatus()}
+          >
+            <Input.Password
+              placeholder="Repetir nueva contraseña"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+            />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );
