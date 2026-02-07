@@ -11,7 +11,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { reportesAPI } from '../../services/api'; 
 import dayjs from 'dayjs';
-import * as XLSX from 'xlsx';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -82,22 +81,44 @@ const ReporteAdmin = () => {
     }
   };
 
-  const exportToExcel = (reporte) => {
+  const exportToExcel = async (reporte) => {
     try {
       const { datos_reporte } = reporte;
       if (!datos_reporte) {
         message.warning('Este reporte no contiene datos');
         return;
       }
-      const wb = XLSX.utils.book_new();
-      const ws_resumen = XLSX.utils.json_to_sheet([
-        { Concepto: 'Monto Total', Valor: datos_reporte.resumen_general?.monto_total_periodo },
-        { Concepto: 'Cantidad Pedidos', Valor: datos_reporte.resumen_general?.cantidad_total_pedidos },
-        { Concepto: 'Ticket Promedio', Valor: datos_reporte.resumen_general?.promedio_por_venta }
-      ]);
-      XLSX.utils.book_append_sheet(wb, ws_resumen, "Resumen");
-      XLSX.writeFile(wb, `${reporte.titulo}.xlsx`);
+
+      // Intentar cargar dinámicamente xlsx para evitar errores de bundling
+      try {
+        const mod = await import('xlsx');
+        const XLSX = mod?.default || mod;
+
+        const wb = XLSX.utils.book_new();
+        const ws_resumen = XLSX.utils.json_to_sheet([
+          { Concepto: 'Monto Total', Valor: datos_reporte.resumen_general?.monto_total_periodo },
+          { Concepto: 'Cantidad Pedidos', Valor: datos_reporte.resumen_general?.cantidad_total_pedidos },
+          { Concepto: 'Ticket Promedio', Valor: datos_reporte.resumen_general?.promedio_por_venta }
+        ]);
+        XLSX.utils.book_append_sheet(wb, ws_resumen, 'Resumen');
+        XLSX.writeFile(wb, `${reporte.titulo}.xlsx`);
+        return;
+      } catch (xlsxErr) {
+        console.warn('xlsx dynamic import failed, falling back to JSON download', xlsxErr);
+      }
+
+      // Fallback: descargar los datos como JSON si xlsx no está disponible
+      const blob = new Blob([JSON.stringify(datos_reporte, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${reporte.titulo}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     } catch (err) {
+      console.error('Error exporting report', err);
       message.error('Error al exportar');
     }
   };

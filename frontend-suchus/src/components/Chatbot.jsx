@@ -40,32 +40,110 @@ const Chatbot = () => {
     setText('');
     setLoading(true);
 
-    // Payload solicitado: ["Nombre", "ID", "Mensaje"]
-    const payload = [name, id, messageText];
+    // Enviar al webhook externo (id, mensaje, nombre)
+    const webhookUrl = 'https://valenxity.app.n8n.cloud/webhook-test/chat';
+    const webhookPayload = { id, message: messageText, name };
 
-    // Log payload para depuración (ver estructura que se envía)
-    console.log('Chatbot payload:', payload);
+    // Mantener formato antiguo para la petición interna (si existe)
+    const internalPayload = [name, id, messageText];
+
+    console.log('Chatbot webhook payload:', webhookPayload);
 
     try {
-      // Intentamos enviar al endpoint /api/chat (ajusta según tu backend)
+      // Enviamos al webhook externo y esperamos su respuesta para usarla como principal
+      let webhookReply = null;
+      try {
+        const webhookRes = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(webhookPayload)
+        });
+
+        if (webhookRes.ok) {
+          try {
+            const webhookData = await webhookRes.json();
+
+            const extractReply = (value) => {
+              if (value == null) return null;
+              if (typeof value === 'string') {
+                // Try to parse stringified JSON
+                const trimmed = value.trim();
+                if ((trimmed.startsWith('{') || trimmed.startsWith('[') || (trimmed.startsWith('"') && trimmed.endsWith('"')))) {
+                  try {
+                    return extractReply(JSON.parse(trimmed));
+                  } catch (e) {
+                    // not JSON, return as-is without surrounding quotes
+                    return trimmed.replace(/^"|"$/g, '');
+                  }
+                }
+                return value.replace(/^"|"$/g, '');
+              }
+
+              if (Array.isArray(value)) {
+                if (value.length === 0) return null;
+                // Try first element
+                const first = extractReply(value[0]);
+                if (first) return first;
+                // Join string elements
+                const strings = value.filter(v => typeof v === 'string');
+                if (strings.length) return strings.join('\n');
+                return JSON.stringify(value);
+              }
+
+              if (typeof value === 'object') {
+                // Common keys where text might live
+                const keys = ['respondOutput', 'reply', 'message', 'response', 'output', 'text', 'body', 'result'];
+                for (const k of keys) {
+                  if (k in value && value[k] != null) return extractReply(value[k]);
+                }
+                // n8n sometimes wraps in { json: { ... } }
+                if (value.json) return extractReply(value.json);
+                // If object has simple string values, pick the first
+                const vals = Object.values(value);
+                for (const v of vals) {
+                  const ex = extractReply(v);
+                  if (ex) return ex;
+                }
+                return JSON.stringify(value);
+              }
+
+              return String(value);
+            };
+
+            webhookReply = extractReply(webhookData);
+          } catch (jsonErr) {
+            const text = await webhookRes.text();
+            webhookReply = text ? text.replace(/^\[|\]$/g, '') : null;
+          }
+        } else {
+          console.warn('Webhook returned non-ok status:', webhookRes.status);
+        }
+      } catch (webErr) {
+        console.warn('Webhook POST failed:', webErr);
+      }
+
+      if (webhookReply) {
+        setMessages(prev => [...prev, { from: 'bot', text: webhookReply }]);
+        setLoading(false);
+        return;
+      }
+
+      // Si no hubo respuesta útil del webhook, usamos el endpoint local /api/chat como respaldo
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(internalPayload)
       });
 
       if (res.ok) {
         const data = await res.json();
-        // Espera que el backend devuelva { reply: '...' } o similar
         const reply = data?.reply || JSON.stringify(data);
         setMessages(prev => [...prev, { from: 'bot', text: reply }]);
       } else {
-        // Si no hay backend o falla, simulamos una respuesta tras esperar
-        const simulated = `Respuesta automática: recibí tu mensaje \"${messageText}\".`;
+        const simulated = `Respuesta automática: recibí tu mensaje "${messageText}".`;
         setTimeout(() => setMessages(prev => [...prev, { from: 'bot', text: simulated }]), 800);
       }
     } catch (err) {
-      // En caso de error de red devolvemos respuesta simulada
       setTimeout(() => setMessages(prev => [...prev, { from: 'bot', text: 'Lo siento, no puedo contactar el servidor ahora mismo.' }]), 800);
     } finally {
       setLoading(false);
