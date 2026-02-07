@@ -128,13 +128,13 @@ const Pedido = () => {
         
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 30 }}>
           <h2 style={{ margin: 0 }}><ShoppingCartOutlined /> Confirmar Pedido</h2>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>Volver al Catálogo</Button>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/home')}>Volver al Catálogo</Button>
         </div>
 
         {productos.length === 0 ? (
           <Card style={{ textAlign: 'center', padding: '50px' }}>
             <Empty description="No hay productos para procesar" />
-            <Button type="primary" style={{ marginTop: 20 }} onClick={() => navigate('/')}>Ir a comprar</Button>
+            <Button type="primary" style={{ marginTop: 20 }} onClick={() => navigate('/home')}>Ir a comprar</Button>
           </Card>
         ) : (
           <div className="pedido-content">
