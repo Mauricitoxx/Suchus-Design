@@ -187,7 +187,7 @@ const Navbar = ({ showLinks = true, showAuth = true, showCart = false, showBackB
                         </button>
                       )}
                       {/* -------------------------------------- */}
-
+                      <button onClick={() => handleNavigate('/mis-pedidos')}>Ver Pedidos</button>
                       <button onClick={() => handleNavigate('/perfil')}>
                         Ver Perfil
                       </button>

@@ -122,15 +122,23 @@ class PedidoViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        queryset = Pedido.objects.all()
-        usuario_id = self.request.query_params.get('usuario_id', None)
+        user = self.request.user
+        # SI ES ADMIN: puede filtrar por cualquier cosa
+        if user.tipo == 'Admin':
+            queryset = Pedido.objects.all()
+            usuario_id = self.request.query_params.get('usuario_id', None)
+            if usuario_id:
+                queryset = queryset.filter(fk_usuario_id=usuario_id)
+        # SI NO ES ADMIN: solo ve sus propios pedidos (Seguridad)
+        else:
+            queryset = Pedido.objects.filter(fk_usuario=user)
+
+        # Filtros comunes
         estado = self.request.query_params.get('estado', None)
         fecha_desde = self.request.query_params.get('fecha_desde', None)
         fecha_hasta = self.request.query_params.get('fecha_hasta', None)
 
-        if usuario_id is not None:
-            queryset = queryset.filter(fk_usuario_id=usuario_id)
-        if estado is not None:
+        if estado:
             queryset = queryset.filter(estado=estado)
         if fecha_desde:
             queryset = queryset.filter(fecha__gte=fecha_desde)
@@ -138,6 +146,23 @@ class PedidoViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(fecha__lte=fecha_hasta)
 
         return queryset.order_by('-id')
+
+    # ESTO ES LO QUE TE FALTA PARA QUITAR EL 404
+    @action(detail=False, methods=['get'])
+    def mis_pedidos(self, request):
+        """
+        Endpoint: GET /api/pedidos/mis_pedidos/
+        """
+        pedidos = Pedido.objects.filter(fk_usuario=request.user).order_by('-id')
+        
+        # Manejo de paginación (por si usas en el futuro)
+        page = self.paginate_queryset(pedidos)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(pedidos, many=True)
+        return Response(serializer.data)
     
     @action(detail=True, methods=['patch'])
     def cambiar_estado(self, request, pk=None):
