@@ -2,6 +2,7 @@ from django.shortcuts import render
 from rest_framework import generics, status, viewsets, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django.db import transaction
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -154,79 +155,82 @@ class PedidoViewSet(viewsets.ModelViewSet):
             {"error": "Estado inválido"},
             status=status.HTTP_400_BAD_REQUEST
         )
+        
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
-        # El usuario autenticado se obtiene del JWT en la cookie
-        user = request.user
-        datos = request.data
-        detalles_productos = datos.get('detalles', [])
-        detalles_impresiones = datos.get('impresiones', [])
-        observacion = datos.get('observacion', '')
+        try:
+            user = request.user
+            datos = request.data
+            detalles_productos = datos.get('detalles', [])
+            detalles_impresiones = datos.get('impresiones', [])
+            observacion = datos.get('observacion', '')
 
-        # Si el usuario es Admin y se proporciona fk_usuario, usar ese usuario
-        # Si no, usar el usuario autenticado (comportamiento normal para clientes)
-        usuario_pedido_id = datos.get('fk_usuario')
-        if usuario_pedido_id and user.es_admin():
-            # Admin puede crear pedido para cualquier usuario
-            try:
-                usuario_pedido = Usuario.objects.get(id=usuario_pedido_id, activo=True)
-            except Usuario.DoesNotExist:
-                return Response(
-                    {"error": "Usuario no encontrado o inactivo"},
-                    status=status.HTTP_400_BAD_REQUEST
+            # 1. Obtener el descuento real del usuario (de tus modelos)
+            porcentaje_descuento = 0
+            if user.usuarioTipo:
+                porcentaje_descuento = user.usuarioTipo.descuento
+
+            # 2. Crear el pedido base
+            pedido = Pedido.objects.create(
+                fk_usuario=user,
+                total=0,
+                observacion=observacion
+            )
+            PedidoEstadoHistorial.objects.create(fk_pedido=pedido, estado=pedido.estado)
+
+            total_bruto = 0
+
+            # 3. Agregar productos usando los nombres de campos de TU base de datos
+            for det in detalles_productos:
+                producto = Producto.objects.get(id=det['fk_producto'])
+                cantidad = int(det['cantidad'])
+                
+                # Usamos el precio real de la BD del producto
+                precio_item = producto.precioUnitario 
+                subtotal_item = cantidad * precio_item
+                
+                total_bruto += subtotal_item
+                
+                # Según tus modelos, guardamos fk_producto y subtotal
+                PedidoProductoDetalle.objects.create(
+                    fk_pedido=pedido,
+                    fk_producto=producto,
+                    cantidad=cantidad,
+                    subtotal=subtotal_item 
                 )
-        else:
-            # Usuario normal crea pedido para sí mismo
-            usuario_pedido = user
 
-        # Crear el pedido
-        pedido = Pedido.objects.create(
-            fk_usuario=usuario_pedido,
-            total=0,
-            observacion=observacion
-        )
-        PedidoEstadoHistorial.objects.create(fk_pedido=pedido, estado=pedido.estado)
+            # 4. Agregar impresiones
+            for imp in detalles_impresiones:
+                impresion = Impresion.objects.create(
+                    color=(imp['color'] == 'color'),
+                    formato=imp['formato'],
+                    nombre_archivo=imp['nombre_archivo'],
+                    fk_usuario=user
+                )
+                
+                subtotal_imp = float(imp.get('precio_unitario', 0)) * int(imp.get('copias', 1))
+                total_bruto += subtotal_imp
+                
+                PedidoImpresionDetalle.objects.create(
+                    fk_pedido=pedido,
+                    fk_impresion=impresion,
+                    cantidadCopias=imp.get('copias', 1),
+                    subtotal=subtotal_imp
+                )
 
-        total = 0
-
-        # Agregar productos al pedido
-        for det in detalles_productos:
-            producto_id = det['fk_producto']
-            cantidad = det['cantidad']
-            subtotal = cantidad * det.get('precio_unitario', 0)
-            total += subtotal
-            PedidoProductoDetalle.objects.create(
-                fk_pedido=pedido,
-                fk_producto_id=producto_id,
-                cantidad=cantidad,
-                subtotal=subtotal
-            )
-
-        # Agregar impresiones al pedido
-        for imp in detalles_impresiones:
-            # Crear registro de impresión primero
-            impresion = Impresion.objects.create(
-                color=(imp['color'] == 'color'),
-                formato=imp['formato'],
-                url='',  # URL vacía para pedidos creados manualmente
-                nombre_archivo=imp['nombre_archivo'],
-                fk_usuario=usuario_pedido
-            )
+            # 5. APLICAR DESCUENTO AL TOTAL FINAL
+            descuento_monto = total_bruto * (porcentaje_descuento / 100)
+            pedido.total = total_bruto - descuento_monto
             
-            subtotal = imp.get('precio_unitario', 0) * imp.get('copias', 1)
-            total += subtotal
-            
-            PedidoImpresionDetalle.objects.create(
-                fk_pedido=pedido,
-                fk_impresion=impresion,
-                cantidadCopias=imp.get('copias', 1),
-                subtotal=subtotal
-            )
+            # Guardamos el porcentaje aplicado en la observación para que quede registro
+            pedido.observacion = f"{observacion} (Desc. aplicado: {porcentaje_descuento}%)"
+            pedido.save()
 
-        pedido.total = total
-        pedido.save()
+            serializer = self.get_serializer(pedido)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        serializer = PedidoSerializer(pedido)
-        return Response(serializer.data)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
