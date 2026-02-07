@@ -62,26 +62,23 @@ const CardProducto = () => {
       return;
     }
 
-    // Tomar carrito existente
     const carritoActual = JSON.parse(localStorage.getItem('carrito')) || [];
 
-    // Ver si ya existe este producto en el carrito
+    // Buscamos si el ID ya existe (independientemente de si tiene cantidad o no)
     const index = carritoActual.findIndex(p => p.id === producto.id);
+    
     if (index >= 0) {
-      carritoActual[index].cantidad += cantidad;
+      // Si ya existe, nos aseguramos de sumar a la cantidad existente
+      const cantidadPrevia = carritoActual[index].cantidad || 1;
+      carritoActual[index].cantidad = cantidadPrevia + cantidad;
     } else {
+      // Si es nuevo, lo agregamos con su cantidad
       carritoActual.push({ ...producto, cantidad });
     }
 
-    // Guardar carrito actualizado
     localStorage.setItem('carrito', JSON.stringify(carritoActual));
-
-    // Resetear la cantidad del producto
     setCantidades((prev) => ({ ...prev, [producto.id]: 0 }));
-
-    // Disparar evento storage para actualizar contador en Home
     window.dispatchEvent(new Event('storage'));
-
     message.success(`${producto.nombre} agregado al carrito!`);
   };
 
