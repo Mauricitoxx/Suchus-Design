@@ -192,5 +192,26 @@ const usuariostipoAPI = {
   deleteTipo: (id) => api.delete(`usuario-tipos/${id}/`),
 };
 
-export { productosAPI, usuariosAPI, pedidosAPI, impresionesAPI,usuariostipoAPI };
+// ========== REPORTES ==========
+const reportesAPI = {
+  getAll: async (params = {}) => {
+    const response = await api.get('reportes/', { params });
+    return response.data;
+  },
+  getById: async (id) => {
+    const response = await api.get(`reportes/${id}/`);
+    return response.data;
+  },
+  create: async (data) => {
+    // data contiene { titulo, fecha_inicio, fecha_fin, fk_usuario_creador }
+    const response = await api.post('reportes/', data);
+    return response.data;
+  },
+  delete: async (id) => {
+    const response = await api.delete(`reportes/${id}/`);
+    return response.data;
+  },
+};
+
+export { productosAPI, usuariosAPI, pedidosAPI, impresionesAPI,usuariostipoAPI,reportesAPI };
 export default api;

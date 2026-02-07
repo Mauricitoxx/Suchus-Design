@@ -4,6 +4,7 @@
     "jwt-decode": "^4.0.0",
     "n8n": "^2.6.3",
     "pdfjs-dist": "^5.4.624",
-    "react-icons": "^5.5.0"
+    "react-icons": "^5.5.0",
+    "xlsx": "^0.20.2"
   }
 }

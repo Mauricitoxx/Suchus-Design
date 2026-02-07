@@ -43,14 +43,25 @@ const Navbar = ({ showLinks = true, showAuth = true, showCart = false, showBackB
     setCantidadCarrito(total);
   };
 
-  const handleLogout = () => {
-    authService.logout();
-    setUser(null);
-    setIsOpen(false);
-    setUserMenuOpen(false);
-    navigate("/");
-    // Forzar recarga para limpiar el estado de todos los componentes
-    window.location.reload();
+  const handleLogout = async () => { // <--- Agregamos async
+    try {
+      // 1. Esperamos a que el servicio borre las cookies y avise al backend
+      await authService.logout(); 
+      
+      // 2. Limpiamos estados locales
+      setUser(null);
+      setIsOpen(false);
+      setUserMenuOpen(false);
+      
+      // 3. Redirección forzada
+      // Usar window.location.href es mejor que navigate + reload 
+      // porque garantiza que el ciclo de vida de React se detenga por completo.
+      window.location.href = "/"; 
+    } catch (error) {
+      console.error("Error en el proceso de logout:", error);
+      // En caso de error, igual forzamos la salida
+      window.location.href = "/";
+    }
   };
 
   const handleNavigate = (path) => {

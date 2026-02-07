@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Usuario, UsuarioTipo, Pedido, Impresion, Producto, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial
+from .models import Usuario, UsuarioTipo, Pedido, Impresion, Producto, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial,Reporte
 
 
 
@@ -277,3 +277,23 @@ class ProductoSerializer(serializers.ModelSerializer):
     
     def get_estado(self, obj):
         return "Activo" if obj.activo else "Inactivo"
+
+
+class ReporteSerializer(serializers.ModelSerializer):
+    nombre_creador = serializers.ReadOnlyField(source='fk_usuario_creador.nombre')
+    datos_reporte = serializers.ReadOnlyField() # Aquí se guardará el JSON que calculamos arriba
+
+    class Meta:
+        model = Reporte
+        fields = [
+            'id', 
+            'titulo', 
+            'fecha_inicio', 
+            'fecha_fin', 
+            'fk_usuario_creador', 
+            'nombre_creador', 
+            'created_at', 
+            'datos_reporte'
+        ]
+        # Muy importante que estos sean ReadOnly para que no den error al hacer el POST
+        read_only_fields = ['fk_usuario_creador', 'created_at', 'datos_reporte']

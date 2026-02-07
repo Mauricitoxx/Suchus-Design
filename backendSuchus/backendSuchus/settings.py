@@ -6,7 +6,7 @@ Versión Final Blindada para Koyeb + Neon - CORREGIDA
 from pathlib import Path
 import os
 from datetime import timedelta
-
+from django.conf.urls.static import static
 # 1. DEFINICIÓN DE BASE_DIR (Mover arriba para usarlo en load_dotenv)
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -34,6 +34,7 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.koyeb.app,clud2
 
 # --- DEFINICIÓN DE APLICACIONES ---
 INSTALLED_APPS = [
+    'django_q',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -48,7 +49,15 @@ INSTALLED_APPS = [
     'cloudinary_storage',
     'whitenoise.runserver_nostatic', 
 ]
-
+Q_CLUSTER = {
+    'name': 'DjangORM',
+    'workers': 2,        # 2 procesos son suficientes para reportes diarios
+    'timeout': 90,
+    'retry': 120,
+    'queue_limit': 50,
+    'bulk': 10,
+    'orm': 'default',    # Almacena las tareas en tu base de datos actual
+}
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware', 
@@ -117,10 +126,11 @@ ROOT_URLCONF = 'backendSuchus.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
+        'DIRS': [], # Puedes dejarlo vacío si usas carpetas dentro de las apps
+        'APP_DIRS': True, # <--- ESTO DEBE ESTAR EN TRUE
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -199,3 +209,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # --- MERCADO PAGO ---
 # Prioriza el token del .env si existe, sino usa el fallback
 MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "APP_USR-5006527019840999-020415-bd90aef781be9ac6dbb5908fdf64bbf6-3182278274")
+
+
+# settings.py
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'Valenxity@gmail.com'
+EMAIL_HOST_PASSWORD = 'tomt dlsd gwna kbzl' # No es tu clave normal, es una clave de app de Google

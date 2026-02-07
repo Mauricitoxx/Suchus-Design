@@ -148,3 +148,17 @@ class Pago(models.Model):
     def __str__(self):
         return f"Pago {self.id} - {self.estado}"
 
+from django.db import models
+
+class Reporte(models.Model):
+    titulo = models.CharField(max_length=200)
+    fecha_inicio = models.DateField()
+    fecha_fin = models.DateField()
+    fk_usuario_creador = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Aquí guardaremos TODA la ensalada de cálculos
+    datos_reporte = models.JSONField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.titulo} ({self.fecha_inicio} - {self.fecha_fin})"

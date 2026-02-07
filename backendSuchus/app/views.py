@@ -10,13 +10,20 @@ from django.contrib.auth.hashers import check_password, make_password
 from django.utils import timezone
 from django.db.models import Q
 from datetime import timedelta
+import traceback
+from cloudinary_storage.storage import RawMediaCloudinaryStorage
+import io
+from django.core.files.base import ContentFile
 import boto3
 import uuid
 import os
-from .models import Usuario, Pedido, Impresion, Producto, UsuarioTipo, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial
+import pandas as pd
+from django.db import models
+from django.db.models import Sum, Count, F
+from .models import Usuario, Pedido, Impresion, Producto, UsuarioTipo, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial,Reporte
 from .serializers import (UsuarioRegisterSerializer, UsuarioLoginSerializer, PedidoSerializer, 
                           ImpresionSerializer, ProductoSerializer, UsuarioSerializer,
-                          UsuarioCreateSerializer, UsuarioUpdateSerializer)
+                          UsuarioCreateSerializer, UsuarioUpdateSerializer, ReporteSerializer)
 from .serializers import UsuarioTipoSerializer
 # Create your views here.
 
@@ -848,3 +855,105 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             })
         
         return Response({"tipo": "Sin Tipo", "descuento": 0})
+
+class ReporteViewSet(viewsets.ModelViewSet):
+    queryset = Reporte.objects.all().order_by('-created_at')
+    serializer_class = ReporteSerializer
+
+    def perform_create(self, serializer):
+        try:
+            print("--- INICIANDO CREACIÓN DE REPORTE ---")
+            
+            # 1. Identificar usuario
+            usuario_id = self.request.data.get('fk_usuario_creador')
+            print(f"Buscando usuario ID: {usuario_id}")
+            usuario = Usuario.objects.get(id=usuario_id)
+
+            # 2. Fechas
+            f_inicio = self.request.data.get('fecha_inicio')
+            f_fin = self.request.data.get('fecha_fin')
+            print(f"Rango: {f_inicio} a {f_fin}")
+
+            # 3. Cálculo
+            print("Calculando datos integrales...")
+            calculos = self.calcular_datos_integrales(f_inicio, f_fin)
+            
+            # 4. Guardado
+            print("Guardando en BD...")
+            serializer.save(fk_usuario_creador=usuario, datos_reporte=calculos)
+            print("--- REPORTE CREADO CON ÉXITO ---")
+
+        except Usuario.DoesNotExist:
+            print("ERROR: El usuario que envió el ID no existe en la BD.")
+            raise serializers.ValidationError({"fk_usuario_creador": "Usuario no encontrado."})
+        except Exception as e:
+            print("!!! ERROR CRÍTICO EN PERFORM_CREATE !!!")
+            print(traceback.format_exc()) # Esto te dice la línea exacta del error
+            raise serializers.ValidationError({"error": str(e)})
+
+    def calcular_datos_integrales(self, inicio, fin):
+        from django.db.models import Count, Sum, Avg
+        import traceback
+
+        try:
+            # Filtramos el universo de pedidos en ese rango
+            pedidos_qs = Pedido.objects.filter(fecha__range=[inicio, fin])
+            
+            if not pedidos_qs.exists():
+                return {"aviso": "Sin movimientos en las fechas seleccionadas"}
+
+            # --- 1. SECCIÓN ECONÓMICA ---
+            stats_globales = pedidos_qs.aggregate(
+                total_bruto=Sum('total'),
+                ticket_promedio=Avg('total')
+            )
+
+            caja_por_estado = list(pedidos_qs.values('estado').annotate(
+                cantidad_pedidos=Count('id'),
+                monto_subtotal=Sum('total')
+            ).order_by('-monto_subtotal'))
+
+            # Limpieza de Decimal a Float para JSON
+            for item in caja_por_estado:
+                item['monto_subtotal'] = float(item['monto_subtotal'] or 0)
+
+            # --- 2. SECCIÓN OPERATIVA ---
+            top_clientes = list(pedidos_qs.values(
+                'fk_usuario__nombre', 
+                'fk_usuario__apellido'
+            ).annotate(
+                compras_realizadas=Count('id'),
+                total_gastado=Sum('total')
+            ).order_by('-compras_realizadas')[:5])
+            
+            for cliente in top_clientes:
+                cliente['total_gastado'] = float(cliente['total_gastado'] or 0)
+
+            # CORRECCIÓN DEL ERROR: Convertir fechas a String
+            dias_mas_ventas = []
+            query_dias = pedidos_qs.values('fecha').annotate(
+                cantidad=Count('id')
+            ).order_by('-cantidad')[:3]
+
+            for item in query_dias:
+                dias_mas_ventas.append({
+                    "fecha": item['fecha'].strftime('%Y-%m-%d') if item['fecha'] else "Sin fecha",
+                    "cantidad": item['cantidad']
+                })
+
+            return {
+                "resumen_general": {
+                    "monto_total_periodo": float(stats_globales['total_bruto'] or 0),
+                    "cantidad_total_pedidos": pedidos_qs.count(),
+                    "promedio_por_venta": round(float(stats_globales['ticket_promedio'] or 0), 2),
+                },
+                "finanzas_por_estado": caja_por_estado,
+                "logistica_y_clientes": {
+                    "mejores_clientes": top_clientes,
+                    "dias_con_mas_ventas": dias_mas_ventas
+                }
+            }
+        except Exception as e:
+            print(f"Error en cálculos: {e}")
+            print(traceback.format_exc())
+            return {"error": str(e)}

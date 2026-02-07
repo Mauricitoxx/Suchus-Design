@@ -1,0 +1,2 @@
+web: gunicorn backendSuchus.wsgi
+worker: python manage.py qcluster
