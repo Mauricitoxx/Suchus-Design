@@ -34,7 +34,6 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.koyeb.app,clud2
 
 # --- DEFINICIÓN DE APLICACIONES ---
 INSTALLED_APPS = [
-    'django_q',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
