@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, Select, InputNumber, Button, Tag, message } from 'antd';
 import { DeleteOutlined, PrinterOutlined, FilePdfOutlined, FileImageOutlined } from '@ant-design/icons';
 import '../assets/style/CardImpresion.css';
-import { saveFileToBuffer } from '../services/fileBuffer';
+import { saveFileToBuffer } from '../services/filebuffer';
 
 const { Option } = Select;
 

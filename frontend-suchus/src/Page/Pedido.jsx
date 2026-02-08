@@ -14,7 +14,7 @@ import {
 import "../assets/style/Pedido.css";
 import Navbar from "./Navbar";
 import api, { usuariosAPI } from "../services/api";
-import { getFileFromBuffer } from "../services/fileBuffer";
+import { getFileFromBuffer } from "../services/filebuffer";
 
 const { Text, Title } = Typography;
 
