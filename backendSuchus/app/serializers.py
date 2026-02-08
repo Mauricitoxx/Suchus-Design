@@ -184,6 +184,21 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+class ImpresionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Impresion
+        # Agregamos 'url' a la lista de campos
+        # Puedes quitar 'archivo' y 'archivo_url' si ya no los necesitas en el JSON
+        fields = ['id', 'nombre_archivo', 'formato', 'color', 'url', 'archivo']
+# Asegúrate de que PedidoImpresionDetalleSerializer incluya la impresión serializada
+class PedidoImpresionDetalleSerializer(serializers.ModelSerializer):
+    # Usamos fk_impresion porque ese es el nombre real en tu modelo
+    fk_impresion_data = ImpresionSerializer(source='fk_impresion', read_only=True)
+    
+    class Meta:
+        model = PedidoImpresionDetalle
+        fields = ['id', 'cantidadCopias', 'subtotal', 'fk_impresion_data']
+
 class PedidoProductoDetalleSerializer(serializers.ModelSerializer):
     fk_producto_nombre = serializers.CharField(source='fk_producto.nombre', read_only=True)
     fk_producto_precio = serializers.FloatField(source='fk_producto.precioUnitario', read_only=True)
@@ -191,19 +206,6 @@ class PedidoProductoDetalleSerializer(serializers.ModelSerializer):
     class Meta:
         model = PedidoProductoDetalle
         fields = ['id', 'fk_producto', 'fk_producto_nombre', 'fk_producto_precio', 'cantidad', 'subtotal']
-
-
-class PedidoImpresionDetalleSerializer(serializers.ModelSerializer):
-    nombre_archivo = serializers.CharField(source='fk_impresion.nombre_archivo', read_only=True)
-    formato = serializers.CharField(source='fk_impresion.formato', read_only=True)
-    color = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = PedidoImpresionDetalle
-        fields = ['id', 'nombre_archivo', 'formato', 'color', 'cantidadCopias', 'subtotal']
-
-    def get_color(self, obj):
-        return 'Color' if obj.fk_impresion.color else 'Blanco y negro'
 
 
 class PedidoEstadoHistorialSerializer(serializers.ModelSerializer):
@@ -249,22 +251,7 @@ class PedidoSerializer(serializers.ModelSerializer):
         fecha = obj.created_at if obj.created_at else timezone.now()
         return [{'id': None, 'estado': obj.estado, 'fecha': fecha.isoformat() if hasattr(fecha, 'isoformat') else str(fecha)}]
 
-class ImpresionSerializer(serializers.ModelSerializer):
-    archivo = serializers.FileField(write_only=True, required=False)
-    usuario_nombre = serializers.CharField(source='fk_usuario.nombre', read_only=True)
-    dias_sin_uso = serializers.SerializerMethodField(read_only=True)
-    
-    class Meta:
-        model = Impresion
-        fields = ['id', 'color', 'formato', 'url', 'nombre_archivo', 'cloudflare_key',
-                  'created_at', 'updated_at', 'last_accessed', 'fk_usuario', 
-                  'usuario_nombre', 'archivo', 'dias_sin_uso']
-        read_only_fields = ['id', 'url', 'cloudflare_key', 'created_at', 'updated_at', 'last_accessed']
-    
-    def get_dias_sin_uso(self, obj):
-        from django.utils import timezone
-        delta = timezone.now() - obj.last_accessed
-        return delta.days
+
 
 class ProductoSerializer(serializers.ModelSerializer):
     estado = serializers.SerializerMethodField(read_only=True)

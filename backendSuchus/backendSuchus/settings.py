@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic', 
     'django.contrib.staticfiles',
     'app', # Tu aplicación de fotocopiadora
     'rest_framework',
@@ -46,7 +47,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'cloudinary',
     'cloudinary_storage',
-    'whitenoise.runserver_nostatic', 
+    
 ]
 Q_CLUSTER = {
     'name': 'DjangORM',
@@ -118,7 +119,7 @@ CLOUDINARY_STORAGE = {
     'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
     'API_SECRET': os.getenv('CLOUDINARY_API_SECRET')
 }
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.RawMediaCloudinaryStorage'
 
 ROOT_URLCONF = 'backendSuchus.urls'
 

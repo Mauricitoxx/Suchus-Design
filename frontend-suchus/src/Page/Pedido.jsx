@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, message, Spin, Divider, Empty, Card, InputNumber } from "antd";
+import { 
+  Button, message, Spin, Divider, Empty, 
+  Card, InputNumber, Typography 
+} from "antd";
 import { 
   DeleteOutlined, 
   ShoppingCartOutlined, 
   ArrowLeftOutlined,
-  SendOutlined 
+  SendOutlined,
+  FilePdfOutlined 
 } from "@ant-design/icons";
 import "../assets/style/Pedido.css";
 import Navbar from "./Navbar";
 import api, { usuariosAPI } from "../services/api";
+import { getFileFromBuffer } from "../services/fileBuffer";
+
+const { Text, Title } = Typography;
 
 const Pedido = () => {
   const navigate = useNavigate();
@@ -18,7 +25,6 @@ const Pedido = () => {
   const [fetchingDiscount, setFetchingDiscount] = useState(true); 
   const [descuentoPorcentaje, setDescuentoPorcentaje] = useState(0);
 
-  // FUNCIÓN MAESTRA DE CÁLCULO
   const obtenerResumen = (lista) => {
     const bruto = lista.reduce((acc, p) => acc + (p.cantidad * p.precioUnitario), 0);
     const ahorro = bruto * (descuentoPorcentaje / 100);
@@ -31,196 +37,211 @@ const Pedido = () => {
       try {
         const data = await usuariosAPI.getDescuento();
         setDescuentoPorcentaje(data.descuento || 0);
-      } catch (e) { console.error("Error cargando descuento:", e); }
+      } catch (e) { 
+        console.error("Error obteniendo descuento:", e); 
+      }
 
       const carrito = JSON.parse(localStorage.getItem("carrito")) || [];
-      setProductos(carrito.map(p => ({
+      
+      // REHIDRATAMOS LOS ARCHIVOS DESDE EL BUFFER
+      const listaConArchivos = carrito.map(p => ({
         ...p,
-        cantidad: Number(p.cantidad) || 1,
-        precioUnitario: Number(p.precioUnitario) || 0
-      })));
+        file: p.esImpresion ? getFileFromBuffer(p.id) : null
+      }));
+
+      setProductos(listaConArchivos);
       setFetchingDiscount(false);
     };
     inicializar();
   }, []);
 
+  const verArchivo = (file) => {
+    if (!file) {
+      message.warning("Archivo no disponible. Intenta subirlo de nuevo.");
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    window.open(url, '_blank');
+  };
+
   const cambiarCantidad = (id, valor) => {
     if (valor === null || valor < 1) return;
-    const nuevaLista = productos.map(p => 
-      p.id === id ? { ...p, cantidad: Number(valor) } : p
-    );
-    
-    const totales = obtenerResumen(nuevaLista);
-    localStorage.setItem("carrito", JSON.stringify(nuevaLista));
-    localStorage.setItem("totales_pedido", JSON.stringify(totales));
-    
+    const nuevaLista = productos.map(p => p.id === id ? { ...p, cantidad: valor } : p);
     setProductos(nuevaLista);
+    localStorage.setItem("carrito", JSON.stringify(nuevaLista));
     window.dispatchEvent(new Event("storage"));
   };
 
   const eliminarProducto = (id) => {
     const nuevaLista = productos.filter(p => p.id !== id);
-    const totales = obtenerResumen(nuevaLista);
     setProductos(nuevaLista);
     localStorage.setItem("carrito", JSON.stringify(nuevaLista));
-    localStorage.setItem("totales_pedido", JSON.stringify(totales));
     window.dispatchEvent(new Event("storage"));
-    message.info("Producto eliminado del carrito");
   };
 
-  // --- FUNCIÓN PARA ENVIAR AL BACKEND (CON DESCUENTO APLICADO) ---
   const enviarPedido = async () => {
     if (productos.length === 0) return;
     
+    // Verificación de archivos antes de enviar
+    const impresionesSinArchivo = productos.filter(p => p.esImpresion && !p.file);
+    if (impresionesSinArchivo.length > 0) {
+      return message.error("Hay impresiones sin archivo cargado. Por favor, vuelve a subirlos.");
+    }
+
     setLoading(true);
+    
     try {
-      // Calculamos los totales actuales justo antes de enviar
-      const { final } = obtenerResumen(productos);
+      const formData = new FormData();
       
+      // 1. Datos generales
+      formData.append('observacion', "Pedido realizado desde la web");
+
+      // 2. Separar productos e impresiones
       const soloProductos = productos.filter(p => !p.esImpresion);
       const soloImpresiones = productos.filter(p => p.esImpresion);
 
-      const payload = {
-        // AQUÍ SE APLICA EL DESCUENTO: enviamos el valor 'final' que ya tiene la resta
-        total: parseFloat(final.toFixed(2)), 
-        observacion: "Pedido realizado desde la web",
-        detalles: soloProductos.map(p => ({
-          fk_producto: p.id,
-          cantidad: p.cantidad,
-          precio_unitario: p.precioUnitario
-        })),
-        impresiones: soloImpresiones.map(imp => ({
-          nombre_archivo: imp.nombre || "archivo.pdf",
-          formato: imp.formato || "A4",
+      // 3. Formatear Detalles de Productos (Catálogo)
+      const detallesJSON = soloProductos.map(p => ({
+        fk_producto: p.id,
+        cantidad: p.cantidad
+      }));
+      formData.append('detalles', JSON.stringify(detallesJSON));
+
+      // 4. Formatear Detalles de Impresiones + Archivos Binarios
+      const impresionesMetadata = soloImpresiones.map((imp, index) => {
+        // Adjuntamos el archivo binario al FormData con la llave que espera el backend
+        if (imp.file) {
+          formData.append(`archivo_impresion_${index}`, imp.file);
+        }
+
+        // Importante: El subtotal individual es necesario para el total_bruto del backend
+        const subtotalIndividual = imp.cantidad * imp.precioUnitario;
+
+        return {
+          nombre_archivo: imp.nombre || `archivo_${index}.pdf`,
+          formato: imp.tipoHoja || 'A4',
           color: imp.color === 'color' ? 'color' : 'bn',
           copias: imp.cantidad,
-          precio_unitario: imp.precioUnitario || 0
-        }))
-      };
+          subtotal: subtotalIndividual // <--- Vital para el backend
+        };
+      });
+      
+      formData.append('impresiones', JSON.stringify(impresionesMetadata));
 
-      await api.post("pedidos/", payload);
-      
-      message.success("¡Pedido realizado con éxito!");
-      
+      // 5. Envío al servidor
+      await api.post("pedidos/", formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      message.success("¡Pedido enviado correctamente!");
       localStorage.removeItem("carrito");
-      localStorage.removeItem("totales_pedido");
-      setProductos([]);
-      window.dispatchEvent(new Event("storage"));
-      
+      // Opcional: limpiar los buffers de archivos aquí
       navigate("/mis-pedidos");
+
     } catch (error) {
-      console.error("Error al enviar pedido:", error);
-      const msgError = error.response?.data?.error || "Error al procesar el pedido";
-      message.error(msgError);
-    } finally {
-      setLoading(false);
+      console.error("Error al enviar pedido:", error.response?.data || error.message);
+      message.error(error.response?.data?.error || "Error al procesar el pedido. Revisa los datos.");
+    } finally { 
+      setLoading(false); 
     }
   };
 
   const resumen = obtenerResumen(productos);
 
-  if (fetchingDiscount) return <div style={{textAlign:'center', marginTop:100}}><Spin size="large" tip="Cargando beneficio..." /></div>;
+  if (fetchingDiscount) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spin size="large" tip="Cargando resumen..." />
+      </div>
+    );
+  }
 
   return (
     <div className="pedido-page-container">
       <Navbar showLinks={false} showAuth={true} showCart={false} showBackButton={true} />
-      <div className="pedido-container" style={{ maxWidth: '900px', margin: '40px auto', padding: '0 20px' }}>
-        
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 30 }}>
-          <h2 style={{ margin: 0 }}><ShoppingCartOutlined /> Confirmar Pedido</h2>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/home')}>Volver al Catálogo</Button>
+      <div className="pedido-container" style={{ maxWidth: '1000px', margin: '40px auto', padding: '0 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 30, alignItems: 'center' }}>
+          <Title level={2} style={{ margin: 0 }}><ShoppingCartOutlined /> Confirmar Pedido</Title>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/home')}>Volver al inicio</Button>
         </div>
 
         {productos.length === 0 ? (
-          <Card style={{ textAlign: 'center', padding: '50px' }}>
-            <Empty description="No hay productos para procesar" />
-            <Button type="primary" style={{ marginTop: 20 }} onClick={() => navigate('/home')}>Ir a comprar</Button>
-          </Card>
+          <Empty description="No tienes productos en el carrito" style={{ marginTop: 50 }} />
         ) : (
-          <div className="pedido-content">
-            <table className="pedido-table" style={{ width: '100%' }}>
-              <thead>
-                <tr style={{ background: '#2d3436', color: '#fff' }}>
-                  <th style={{ padding: '12px' }}>Producto</th>
-                  <th style={{ padding: '12px', textAlign: 'center' }}>Cantidad</th>
-                  <th style={{ padding: '12px' }}>Subtotal</th>
-                  <th style={{ padding: '12px' }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {productos.map(p => (
-                  <tr key={p.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                    <td style={{ padding: '15px' }}>{p.nombre}</td>
-                    <td style={{ padding: '15px', textAlign: 'center' }}>
-                      <InputNumber 
-                        min={1} 
-                        value={p.cantidad} 
-                        onChange={(val) => cambiarCantidad(p.id, val)} 
-                      />
-                    </td>
-                    <td style={{ padding: '15px' }}>
-                      <InputNumber 
-                        value={(p.cantidad * p.precioUnitario).toFixed(2)} 
-                        readOnly 
-                        bordered={false}
-                        style={{ fontWeight: 'bold', width: '120px' }}
-                        prefix="$"
-                      />
-                    </td>
-                    <td style={{ padding: '15px', textAlign: 'right' }}>
-                      <Button type="text" danger icon={<DeleteOutlined />} onClick={() => eliminarProducto(p.id)} />
-                    </td>
+          <div className="pedido-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '30px' }}>
+            {/* TABLA DE PRODUCTOS */}
+            <div className="pedido-items-list">
+              <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <thead>
+                  <tr style={{ background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>
+                    <th style={{ padding: '16px', textAlign: 'left' }}>Descripción</th>
+                    <th style={{ padding: '16px', textAlign: 'center' }}>Cant.</th>
+                    <th style={{ padding: '16px', textAlign: 'right' }}>Subtotal</th>
+                    <th style={{ padding: '16px' }}></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {productos.map(p => (
+                    <tr key={p.id} className="pedido-row" style={{ borderBottom: '1px solid #f0f0f0' }}>
+                      <td style={{ padding: '16px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <Text strong>{p.nombre}</Text>
+                          {p.esImpresion && (
+                            p.file ? (
+                              <Button type="link" size="small" icon={<FilePdfOutlined />} onClick={() => verArchivo(p.file)} style={{ padding: 0, textAlign: 'left', height: 'auto', fontSize: '12px' }}>
+                                Ver archivo adjunto
+                              </Button>
+                            ) : (
+                              <Text type="danger" style={{ fontSize: '11px' }}>⚠️ Error: El archivo se perdió al recargar. Quita este item y vuelve a subirlo.</Text>
+                            )
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center' }}>
+                        <InputNumber min={1} value={p.cantidad} onChange={(v) => cambiarCantidad(p.id, v)} style={{ width: '60px' }} />
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'right' }}>
+                        <Text strong>${(p.cantidad * p.precioUnitario).toFixed(2)}</Text>
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center' }}>
+                        <Button type="text" danger icon={<DeleteOutlined />} onClick={() => eliminarProducto(p.id)} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-            <div style={{ marginTop: 40, display: 'flex', justifyContent: 'flex-end' }}>
-              <Card title="Cómputo de Totales" style={{ width: '100%', maxWidth: '380px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                <div style={{ marginBottom: 15 }}>
-                  <span>Total Bruto</span>
-                  <InputNumber 
-                    value={resumen.bruto.toFixed(2)} 
-                    readOnly 
-                    prefix="$" 
-                    style={{ width: '100%' }}
-                  />
+            {/* CARD DE RESUMEN */}
+            <div className="pedido-summary">
+              <Card 
+                title={<Title level={4} style={{ margin: 0 }}>Total de la compra</Title>} 
+                bordered={false} 
+                style={{ borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <Text type="secondary">Suma total:</Text>
+                  <Text>$ {resumen.bruto.toFixed(2)}</Text>
                 </div>
-                
-                <div style={{ marginBottom: 15 }}>
-                  <span>Descuento aplicado ({descuentoPorcentaje}%)</span>
-                  <InputNumber 
-                    value={resumen.ahorro.toFixed(2)} 
-                    readOnly 
-                    prefix="-$" 
-                    style={{ width: '100%', color: '#52c41a' }}
-                  />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <Text type="secondary">Descuento ({descuentoPorcentaje}%):</Text>
+                  <Text type="success" strong>- $ {resumen.ahorro.toFixed(2)}</Text>
                 </div>
-
-                <Divider />
-
-                <div style={{ marginBottom: 20 }}>
-                  <span style={{ fontWeight: 'bold' }}>TOTAL FINAL</span>
-                  <InputNumber 
-                    value={resumen.final.toFixed(2)} 
-                    readOnly 
-                    prefix="$" 
-                    size="large"
-                    style={{ width: '100%', fontWeight: 'bold' }}
-                    status="warning"
-                  />
+                <Divider style={{ margin: '16px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                  <Title level={4} style={{ margin: 0 }}>A pagar:</Title>
+                  <Title level={2} style={{ margin: 0, color: '#1890ff' }}>${resumen.final.toFixed(2)}</Title>
                 </div>
-
                 <Button 
                   type="primary" 
                   block 
                   size="large" 
                   icon={<SendOutlined />} 
-                  onClick={enviarPedido}
-                  loading={loading}
-                  style={{ height: '50px', fontSize: '16px', borderRadius: '8px' }}
+                  onClick={enviarPedido} 
+                  loading={loading} 
+                  style={{ height: '54px', borderRadius: '10px', fontSize: '17px', fontWeight: 'bold' }}
                 >
-                  SOLICITAR PEDIDO
+                  CONFIRMAR Y ENVIAR
                 </Button>
               </Card>
             </div>

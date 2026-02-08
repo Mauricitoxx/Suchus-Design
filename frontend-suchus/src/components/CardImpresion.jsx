@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { Card, Select, InputNumber, Button, Tag, message, Divider } from 'antd';
+import React, { useState } from 'react';
+import { Card, Select, InputNumber, Button, Tag, message } from 'antd';
 import { DeleteOutlined, PrinterOutlined, FilePdfOutlined, FileImageOutlined } from '@ant-design/icons';
 import '../assets/style/CardImpresion.css';
+import { saveFileToBuffer } from '../services/fileBuffer';
 
 const { Option } = Select;
 
@@ -13,7 +14,6 @@ const CardImpresion = () => {
     A3: { 'blanco y negro': 30, color: 60 },
   };
 
-  // --- MÉTODO BINARIO PARA CONTAR HOJAS ---
   const obtenerPaginasPDF = (file) => {
     return new Promise((resolve) => {
       if (file.type !== 'application/pdf') {
@@ -44,12 +44,11 @@ const CardImpresion = () => {
       const paginas = await obtenerPaginasPDF(file);
       nuevosArchivos.push({
         id: Math.random().toString(36).substr(2, 9),
-        file,
+        file, 
         name: file.name,
         hojas: paginas,
         previewUrl: URL.createObjectURL(file),
         type: file.type,
-        // Configuración individual por archivo
         tipoHoja: 'A4',
         color: 'blanco y negro',
         cantidad: 1
@@ -80,39 +79,37 @@ const CardImpresion = () => {
       return;
     }
 
+    const carritoActual = JSON.parse(localStorage.getItem('carrito')) || [];
+    
     const nuevosItemsParaCarrito = archivos.map((arc, index) => {
       const precioH = precioPorHoja[arc.tipoHoja][arc.color];
+      const idUnico = `IMP-${Date.now()}-${index}`;
+
+      // GUARDAMOS EL BINARIO EN EL PUENTE
+      saveFileToBuffer(idUnico, arc.file);
+
       return {
-        id: `IMP-${Date.now()}-${index}`,
+        id: idUnico,
         nombre: arc.name,
         cantidad: arc.cantidad,
         precioUnitario: arc.hojas * precioH,
-        esImpresion: true,
-        detalles: {
-          tipo: `${arc.tipoHoja} (${arc.color})`,
-          hojas: arc.hojas,
-          archivoOriginal: arc.name
-        }
+        esImpresion: true, // Importante para Pedido.jsx
+        tipo: 'impresion',
+        tipoHoja: arc.tipoHoja,
+        color: arc.color,
+        hojas: arc.hojas
       };
     });
 
-    const carritoActual = JSON.parse(localStorage.getItem('carrito')) || [];
     localStorage.setItem('carrito', JSON.stringify([...carritoActual, ...nuevosItemsParaCarrito]));
     window.dispatchEvent(new Event('storage')); 
     
-    message.success(`${archivos.length} configuraciones agregadas al carrito`);
+    message.success(`${archivos.length} archivos agregados al carrito`);
     setArchivos([]);
   };
 
-  // Cálculo del total de la carga actual
-  const totalCarga = archivos.reduce((acc, arc) => {
-    const p = precioPorHoja[arc.tipoHoja][arc.color];
-    return acc + (arc.hojas * p * arc.cantidad);
-  }, 0);
-
   return (
     <Card className="card-impresion" title={<span><PrinterOutlined /> Servicio de Impresiones</span>}>
-      
       <div className="upload-container" style={{ border: '2px dashed #40a9ff', padding: '20px', textAlign: 'center', borderRadius: '8px', marginBottom: 20 }}>
         <input type="file" multiple onChange={handleArchivoChange} accept=".pdf,image/*" id="file-input" style={{ display: 'none' }} />
         <label htmlFor="file-input" style={{ cursor: 'pointer', color: '#1890ff' }}>
@@ -130,7 +127,7 @@ const CardImpresion = () => {
                 <a href={arc.previewUrl} target="_blank" rel="noreferrer" style={{ fontWeight: '500', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {arc.name}
                 </a>
-                <Tag color="blue">{arc.hojas} {arc.hojas === 1 ? 'pág' : 'págs'}</Tag>
+                <Tag color="blue">{arc.hojas} págs</Tag>
               </div>
               <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleEliminarArchivo(arc.id)} />
             </div>
@@ -158,15 +155,6 @@ const CardImpresion = () => {
           </Card>
         ))}
       </div>
-
-      {archivos.length > 0 && (
-        <div className="resumen-pago" style={{ marginTop: 20, padding: 15, backgroundColor: '#e6f7ff', borderRadius: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>Total a cargar ({archivos.length} archivos):</span>
-            <strong style={{ fontSize: '18px', color: '#1890ff' }}>${totalCarga}</strong>
-          </div>
-        </div>
-      )}
 
       <Button 
         type="primary" 
