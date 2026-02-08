@@ -5,9 +5,10 @@ import {
   ShoppingCartOutlined, 
   FileTextOutlined, 
   HistoryOutlined,
-  ClockCircleOutlined 
+  ClockCircleOutlined,
+  FilePdfOutlined 
 } from '@ant-design/icons';
-import { pedidosAPI } from '../services/api'; // Importación corregida según tu api.js
+import { pedidosAPI } from '../services/api'; 
 import Navbar from './Navbar';
 
 const { Title, Text } = Typography;
@@ -25,10 +26,7 @@ const MisPedidos = () => {
   const fetchPedidos = async () => {
     try {
       setLoading(true);
-      // Usamos el método específico que definiste en api.js
       const data = await pedidosAPI.misPedidos();
-      
-      // Manejamos si la respuesta viene con paginación (results) o es un array directo
       const listaFinal = Array.isArray(data) ? data : (data.results || []);
       setPedidos(listaFinal);
     } catch (error) {
@@ -122,7 +120,6 @@ const MisPedidos = () => {
           )}
         </Card>
 
-        {/* Modal de Detalle Extendido */}
         <Modal
           title={`Detalle del Pedido #${pedidoSeleccionado?.id}`}
           open={modalVisible}
@@ -136,7 +133,6 @@ const MisPedidos = () => {
         >
           {pedidoSeleccionado && (
             <div style={{ padding: '10px 0' }}>
-              {/* Sección de Productos */}
               <Title level={5}><ShoppingCartOutlined /> Productos en este pedido</Title>
               <List
                 itemLayout="horizontal"
@@ -152,7 +148,6 @@ const MisPedidos = () => {
                 )}
               />
 
-              {/* Sección de Impresiones */}
               {pedidoSeleccionado.detalle_impresiones?.length > 0 && (
                 <>
                   <Divider />
@@ -161,10 +156,27 @@ const MisPedidos = () => {
                     itemLayout="horizontal"
                     dataSource={pedidoSeleccionado.detalle_impresiones}
                     renderItem={(imp) => (
-                      <List.Item>
+                      <List.Item
+                        actions={[
+                          <Button 
+                            type="link" 
+                            icon={<EyeOutlined />} 
+                            href={imp.fk_impresion_data?.url} 
+                            target="_blank"
+                            disabled={!imp.fk_impresion_data?.url || imp.fk_impresion_data?.url === "temporal"}
+                          >
+                            Ver Archivo
+                          </Button>
+                        ]}
+                      >
                         <List.Item.Meta
-                          title={imp.nombre_archivo}
-                          description={`${imp.formato} - ${imp.color} (${imp.cantidadCopias} copias)`}
+                          avatar={<FilePdfOutlined style={{ fontSize: '24px', color: '#ff4d4f' }} />}
+                          title={
+                            <Text strong>
+                              {imp.fk_impresion_data?.nombre_archivo || "Archivo de impresión"}
+                            </Text>
+                          }
+                          description={`${imp.fk_impresion_data?.formato || 'A4'} - ${imp.fk_impresion_data?.color ? 'Color' : 'B&N'} (${imp.cantidadCopias} copias)`}
                         />
                         <Text strong>${imp.subtotal}</Text>
                       </List.Item>
@@ -175,7 +187,6 @@ const MisPedidos = () => {
 
               <Divider />
 
-              {/* Resumen Final */}
               <div style={{ textAlign: 'right', background: '#fafafa', padding: '15px', borderRadius: '8px' }}>
                 <Text type="secondary" italic style={{ display: 'block', marginBottom: '5px' }}>
                   "{pedidoSeleccionado.observacion || 'Sin observaciones'}"
@@ -185,7 +196,6 @@ const MisPedidos = () => {
                 </Title>
               </div>
 
-              {/* Línea de tiempo de estados */}
               <Divider />
               <Title level={5}><HistoryOutlined /> Seguimiento del pedido</Title>
               <List

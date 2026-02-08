@@ -3,6 +3,7 @@ from rest_framework import generics, status, viewsets, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db import transaction
+import json
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -120,20 +121,42 @@ class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all()
     serializer_class = PedidoSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
     def get_queryset(self):
         user = self.request.user
-        # SI ES ADMIN: puede filtrar por cualquier cosa
-        if user.tipo == 'Admin':
+        
+        # CORRECCIÓN: Acceder a la descripción del tipo de usuario correctamente
+        # Usamos .descripcion porque así está en tu modelo UsuarioTipo
+        is_admin = False
+        if hasattr(user, 'usuarioTipo') and user.usuarioTipo:
+            is_admin = user.usuarioTipo.descripcion == 'Admin'
+
+        # 1. Filtrado por Rol
+        if is_admin:
             queryset = Pedido.objects.all()
+            # El admin sí puede filtrar por cualquier usuario
             usuario_id = self.request.query_params.get('usuario_id', None)
             if usuario_id:
                 queryset = queryset.filter(fk_usuario_id=usuario_id)
-        # SI NO ES ADMIN: solo ve sus propios pedidos (Seguridad)
         else:
+            # El cliente común SOLO ve sus pedidos
             queryset = Pedido.objects.filter(fk_usuario=user)
 
-        # Filtros comunes
+        # 2. Filtros adicionales de búsqueda
+        estado = self.request.query_params.get('estado', None)
+        fecha_desde = self.request.query_params.get('fecha_desde', None)
+        fecha_hasta = self.request.query_params.get('fecha_hasta', None)
+
+        if estado:
+            queryset = queryset.filter(estado=estado)
+        if fecha_desde:
+            queryset = queryset.filter(fecha__gte=fecha_desde)
+        if fecha_hasta:
+            queryset = queryset.filter(fecha__lte=fecha_hasta)
+
+        return queryset.order_by('-id')
+
+        # 2. Filtros adicionales de búsqueda
         estado = self.request.query_params.get('estado', None)
         fecha_desde = self.request.query_params.get('fecha_desde', None)
         fecha_hasta = self.request.query_params.get('fecha_hasta', None)
@@ -180,81 +203,96 @@ class PedidoViewSet(viewsets.ModelViewSet):
             {"error": "Estado inválido"},
             status=status.HTTP_400_BAD_REQUEST
         )
-        
+
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         try:
             user = request.user
-            datos = request.data
-            detalles_productos = datos.get('detalles', [])
-            detalles_impresiones = datos.get('impresiones', [])
-            observacion = datos.get('observacion', '')
+            import json
+            import uuid
+            from django.core.files.base import ContentFile
+            from cloudinary_storage.storage import RawMediaCloudinaryStorage
 
-            # 1. Obtener el descuento real del usuario (de tus modelos)
-            porcentaje_descuento = 0
-            if user.usuarioTipo:
-                porcentaje_descuento = user.usuarioTipo.descuento
+            # 1. Parseo de datos desde FormData
+            detalles_productos = json.loads(request.data.get('detalles', '[]'))
+            detalles_impresiones_metadata = json.loads(request.data.get('impresiones', '[]'))
+            observacion = request.data.get('observacion', '')
 
-            # 2. Crear el pedido base
+            # 2. Crear el Pedido inicial
             pedido = Pedido.objects.create(
-                fk_usuario=user,
-                total=0,
-                observacion=observacion
+                fk_usuario=user, 
+                total=0, 
+                observacion=observacion,
+                estado="En revisión"
             )
-            PedidoEstadoHistorial.objects.create(fk_pedido=pedido, estado=pedido.estado)
-
             total_bruto = 0
 
-            # 3. Agregar productos usando los nombres de campos de TU base de datos
+            # 3. Procesar Productos de catálogo
             for det in detalles_productos:
                 producto = Producto.objects.get(id=det['fk_producto'])
-                cantidad = int(det['cantidad'])
+                cantidad = int(det.get('cantidad', 1))
+                sub_p = float(producto.precioUnitario) * cantidad
+                total_bruto += sub_p
                 
-                # Usamos el precio real de la BD del producto
-                precio_item = producto.precioUnitario 
-                subtotal_item = cantidad * precio_item
-                
-                total_bruto += subtotal_item
-                
-                # Según tus modelos, guardamos fk_producto y subtotal
                 PedidoProductoDetalle.objects.create(
-                    fk_pedido=pedido,
-                    fk_producto=producto,
-                    cantidad=cantidad,
-                    subtotal=subtotal_item 
+                    fk_pedido=pedido, 
+                    fk_producto=producto, 
+                    cantidad=cantidad, 
+                    subtotal=sub_p
                 )
 
-            # 4. Agregar impresiones
-            for imp in detalles_impresiones:
-                impresion = Impresion.objects.create(
-                    color=(imp['color'] == 'color'),
-                    formato=imp['formato'],
-                    nombre_archivo=imp['nombre_archivo'],
+            # 4. Procesar Impresiones (Subida MANUAL a Cloudinary)
+            for i, imp_data in enumerate(detalles_impresiones_metadata):
+                archivo_real = request.FILES.get(f'archivo_impresion_{i}')
+                url_cloudinary = "temporal"
+                
+                if archivo_real:
+                    # Usamos el mismo storage que usas en los reportes
+                    storage = RawMediaCloudinaryStorage()
+                    
+                    # Generamos un nombre único para la carpeta 'impresiones' en Cloudinary
+                    extension = os.path.splitext(archivo_real.name)[1]
+                    nombre_archivo_nube = f"impresiones/{uuid.uuid4()}{extension}"
+                    
+                    # Guardamos el archivo directamente en Cloudinary
+                    path_almacenado = storage.save(nombre_archivo_nube, archivo_real)
+                    # Obtenemos la URL pública real
+                    url_cloudinary = storage.url(path_almacenado)
+
+                # Crear objeto Impresion con la URL de la nube
+                nueva_imp = Impresion.objects.create(
+                    nombre_archivo=imp_data.get('nombre_archivo', archivo_real.name if archivo_real else 'archivo.pdf'),
+                    formato=imp_data.get('formato', 'A4'),
+                    color=str(imp_data.get('color')).lower() == 'color',
+                    archivo=archivo_real,  # Se guarda el objeto archivo
+                    url=url_cloudinary,    # Guardamos el link de Cloudinary aquí
                     fk_usuario=user
                 )
-                
-                subtotal_imp = float(imp.get('precio_unitario', 0)) * int(imp.get('copias', 1))
+
+                subtotal_imp = float(imp_data.get('subtotal', 0))
                 total_bruto += subtotal_imp
-                
+
+                # Crear el Detalle vinculado (campo fk_impresion)
                 PedidoImpresionDetalle.objects.create(
                     fk_pedido=pedido,
-                    fk_impresion=impresion,
-                    cantidadCopias=imp.get('copias', 1),
+                    fk_impresion=nueva_imp, 
+                    cantidadCopias=int(imp_data.get('copias', 1)),
                     subtotal=subtotal_imp
                 )
 
-            # 5. APLICAR DESCUENTO AL TOTAL FINAL
-            descuento_monto = total_bruto * (porcentaje_descuento / 100)
-            pedido.total = total_bruto - descuento_monto
-            
-            # Guardamos el porcentaje aplicado en la observación para que quede registro
-            pedido.observacion = f"{observacion} (Desc. aplicado: {porcentaje_descuento}%)"
+            # 5. Cálculo final con descuento
+            porcentaje_descuento = 0
+            if hasattr(user, 'usuarioTipo') and user.usuarioTipo:
+                porcentaje_descuento = user.usuarioTipo.descuento
+
+            pedido.total = total_bruto * (1 - (porcentaje_descuento / 100))
             pedido.save()
 
-            serializer = self.get_serializer(pedido)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(self.get_serializer(pedido).data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
+            import traceback
+            print(traceback.format_exc())
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
