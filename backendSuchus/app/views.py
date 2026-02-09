@@ -122,6 +122,16 @@ class PedidoViewSet(viewsets.ModelViewSet):
     serializer_class = PedidoSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
+
+    def list(self, request, *args, **kwargs):
+        try:
+            return super().list(request, *args, **kwargs)
+        except Exception as e:
+            return Response(
+                {'error': str(e), 'traceback': traceback.format_exc()},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     def get_queryset(self):
         user = self.request.user
         
@@ -141,20 +151,6 @@ class PedidoViewSet(viewsets.ModelViewSet):
         else:
             # El cliente común SOLO ve sus pedidos
             queryset = Pedido.objects.filter(fk_usuario=user)
-
-        # 2. Filtros adicionales de búsqueda
-        estado = self.request.query_params.get('estado', None)
-        fecha_desde = self.request.query_params.get('fecha_desde', None)
-        fecha_hasta = self.request.query_params.get('fecha_hasta', None)
-
-        if estado:
-            queryset = queryset.filter(estado=estado)
-        if fecha_desde:
-            queryset = queryset.filter(fecha__gte=fecha_desde)
-        if fecha_hasta:
-            queryset = queryset.filter(fecha__lte=fecha_hasta)
-
-        return queryset.order_by('-id')
 
         # 2. Filtros adicionales de búsqueda
         estado = self.request.query_params.get('estado', None)
@@ -223,7 +219,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 fk_usuario=user, 
                 total=0, 
                 observacion=observacion,
-                estado="En revisión"
+                estado="Pendiente"
             )
             total_bruto = 0
 

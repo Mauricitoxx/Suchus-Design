@@ -39,7 +39,7 @@ const MisPedidos = () => {
 
   const getStatusColor = (status) => {
     const colors = {
-      'En revisión': 'orange',
+      'Pendiente': 'orange',
       'Aceptado': 'blue',
       'En preparación': 'purple',
       'Listo para retirar': 'green',
