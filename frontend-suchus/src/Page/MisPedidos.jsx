@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Card, Typography, Spin, Button, Modal, Descriptions, Divider, Input, DatePicker, Space, message } from 'antd';
-import { EyeOutlined, ClockCircleOutlined, SearchOutlined, FilePdfOutlined, CalendarOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { Table, Tag, Card, Typography, Spin, Button, Modal, Descriptions, Divider, Input, DatePicker, Space, message, Upload, Select, InputNumber } from 'antd';
+import { EyeOutlined, ClockCircleOutlined, SearchOutlined, FilePdfOutlined, CalendarOutlined, ArrowLeftOutlined, UploadOutlined } from '@ant-design/icons';
 import { pedidosAPI } from '../services/api';
 import Navbar from './Navbar';
 import dayjs from 'dayjs';
@@ -17,6 +17,16 @@ const MisPedidos = () => {
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
   const [searchText, setSearchText] = useState('');
   const [rangoFechas, setRangoFechas] = useState(null);
+  
+  // Estados para corrección de archivos
+  const [archivosCorreccion, setArchivosCorreccion] = useState({}); // {impresionId: {file, formato, color, copias}}
+  const [enviandoCorreccion, setEnviandoCorreccion] = useState(false);
+  
+  // Precios por hoja
+  const precioPorHoja = {
+    A4: { 'blanco y negro': 20, color: 40 },
+    A3: { 'blanco y negro': 30, color: 60 },
+  };
 
   useEffect(() => {
     fetchPedidos();
@@ -51,6 +61,7 @@ const MisPedidos = () => {
       'Preparado': 'purple',
       'Retirado': 'green',
       'Cancelado': 'red',
+      'Requiere Corrección': 'red',
       'Aceptado': 'blue',
       'En preparación': 'purple',
       'Listo para retirar': 'green',
@@ -59,6 +70,101 @@ const MisPedidos = () => {
     return colores[estado] ?? 'default';
   };
 
+
+  const handleFileChange = (impresionId, file) => {
+    setArchivosCorreccion(prev => ({
+      ...prev,
+      [impresionId]: {
+        file: file,
+        formato: prev[impresionId]?.formato || 'A4',
+        color: prev[impresionId]?.color || 'blanco y negro',
+        copias: prev[impresionId]?.copias || 1
+      }
+    }));
+    return false; // Prevenir upload automático
+  };
+
+  const handleChangeFormatoCorreccion = (impresionId, formato) => {
+    setArchivosCorreccion(prev => ({
+      ...prev,
+      [impresionId]: {
+        ...prev[impresionId],
+        formato: formato
+      }
+    }));
+  };
+
+  const handleChangeColorCorreccion = (impresionId, color) => {
+    setArchivosCorreccion(prev => ({
+      ...prev,
+      [impresionId]: {
+        ...prev[impresionId],
+        color: color
+      }
+    }));
+  };
+
+  const handleChangeCopiasCorreccion = (impresionId, copias) => {
+    setArchivosCorreccion(prev => ({
+      ...prev,
+      [impresionId]: {
+        ...prev[impresionId],
+        copias: copias
+      }
+    }));
+  };
+
+  const calcularSubtotal = (formato, color, copias) => {
+    const precioBase = precioPorHoja[formato]?.[color] || 20;
+    return precioBase * copias;
+  };
+
+  const handleEnviarCorreccion = async () => {
+    if (Object.keys(archivosCorreccion).length === 0) {
+      message.warning('Debes seleccionar al menos un archivo para corregir');
+      return;
+    }
+
+    // Validar que todos tengan archivo
+    const sinArchivo = Object.entries(archivosCorreccion).filter(([id, data]) => !data.file);
+    if (sinArchivo.length > 0) {
+      message.warning('Todos los archivos seleccionados deben tener un archivo adjunto');
+      return;
+    }
+
+    setEnviandoCorreccion(true);
+    try {
+      const formData = new FormData();
+      
+      // Preparar metadata de archivos corregidos
+      const archivos_corregidos = Object.entries(archivosCorreccion).map(([impresionId, data]) => ({
+        impresion_id: parseInt(impresionId),
+        formato: data.formato,
+        color: data.color,
+        copias: data.copias
+      }));
+      
+      formData.append('archivos_corregidos', JSON.stringify(archivos_corregidos));
+      
+      // Agregar cada archivo con su índice
+      Object.entries(archivosCorreccion).forEach(([impresionId, data], index) => {
+        formData.append(`archivo_${index}`, data.file);
+      });
+      
+      await pedidosAPI.corregirArchivos(pedidoSeleccionado.id, formData);
+      
+      message.success('Archivos corregidos enviados correctamente. El precio ha sido recalculado.');
+      setArchivosCorreccion({});
+      setModalVisible(false);
+      fetchPedidos();
+      
+    } catch (error) {
+      console.error('Error al enviar archivos corregidos:', error);
+      message.error(error.response?.data?.error || 'Error al enviar los archivos');
+    } finally {
+      setEnviandoCorreccion(false);
+    }
+  };
 
   const pedidosFiltrados = pedidos.filter(pedido => {
     const idPedido = pedido.id?.toString() || '';
@@ -101,6 +207,7 @@ const MisPedidos = () => {
         { text: 'Preparado', value: 'Preparado' },
         { text: 'Retirado', value: 'Retirado' },
         { text: 'Cancelado', value: 'Cancelado' },
+        { text: 'Requiere Corrección', value: 'Requiere Corrección' },
       ],
       onFilter: (value, record) => record.estado === value,
       render: (estado) => <Tag color={getColorEstado(estado)}>{estado?.toUpperCase() || 'S/E'}</Tag>,
@@ -211,9 +318,15 @@ const MisPedidos = () => {
         <Modal
           title={`Detalles del Pedido #${pedidoSeleccionado?.id}`}
           open={modalVisible}
-          onCancel={() => setModalVisible(false)}
+          onCancel={() => {
+            setModalVisible(false);
+            setArchivosCorreccion({});
+          }}
           footer={[
-            <Button key="close" onClick={() => setModalVisible(false)}>Cerrar</Button>
+            <Button key="close" onClick={() => {
+              setModalVisible(false);
+              setArchivosCorreccion({});
+            }}>Cerrar</Button>
           ]}
           width="min(800px, 95vw)"
           style={{ top: 16 }}
@@ -222,48 +335,235 @@ const MisPedidos = () => {
           {pedidoSeleccionado ? (
             <div style={{ minWidth: 0 }}>
               {/* Motivo de corrección y grilla de archivos a corregir */}
-              {pedidoSeleccionado.estado === 'Requiere Corrección' && pedidoSeleccionado.motivo_correccion && (
-                <div style={{ marginBottom: 16 }}>
+              {pedidoSeleccionado.estado === 'Requiere Corrección' && (
+                <div style={{ marginBottom: 24 }}>
                   <div style={{
-                    background: '#fffbe6',
-                    border: '1px solid #ffe58f',
-                    borderRadius: 6,
-                    padding: 16,
-                    marginBottom: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12
+                    background: '#fff2e8',
+                    border: '2px solid #ff7a45',
+                    borderRadius: 8,
+                    padding: 20,
+                    marginBottom: 16,
                   }}>
-                    <span style={{ fontSize: 22, color: '#faad14' }}>⚠️</span>
-                    <div>
-                      <b>Motivo de corrección:</b><br />
-                      {pedidoSeleccionado.motivo_correccion}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                      <span style={{ fontSize: 28, color: '#ff7a45' }}>⚠️</span>
+                      <Title level={4} style={{ margin: 0, color: '#ff7a45' }}>
+                        Este pedido requiere corrección
+                      </Title>
+                    </div>
+                    {pedidoSeleccionado.motivo_correccion ? (
+                      <div style={{ 
+                        background: 'white', 
+                        padding: 12, 
+                        borderRadius: 6,
+                        marginBottom: 16,
+                        border: '1px solid #ffbb96'
+                      }}>
+                        <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                          Motivo de la corrección:
+                        </Text>
+                        <Text style={{ fontSize: 14 }}>
+                          {pedidoSeleccionado.motivo_correccion}
+                        </Text>
+                      </div>
+                    ) : (
+                      <Text style={{ display: 'block', marginBottom: 16 }}>
+                        Por favor, revisa los archivos y sube las versiones corregidas.
+                      </Text>
+                    )}
+                    
+                    <Text strong style={{ display: 'block', marginBottom: 12, fontSize: 15 }}>
+                      📤 Sube los archivos corregidos y ajusta las configuraciones si es necesario:
+                    </Text>
+                    
+                    <Table
+                      dataSource={pedidoSeleccionado.detalle_impresiones || []}
+                      rowKey={(record) => record.id}
+                      pagination={false}
+                      size="small"
+                      bordered
+                      scroll={{ x: 'max-content' }}
+                      style={{ marginBottom: 16 }}
+                      columns={[
+                        { 
+                          title: 'Archivo original', 
+                          key: 'archivo_original',
+                          width: 200,
+                          render: (_, imp) => (
+                            <Space direction="vertical" size="small">
+                              {imp.fk_impresion_data?.url ? (
+                                <Button
+                                  type="link"
+                                  icon={<FilePdfOutlined />}
+                                  href={imp.fk_impresion_data.url}
+                                  target="_blank"
+                                  style={{ padding: 0 }}
+                                >
+                                  {imp.fk_impresion_data.nombre_archivo || 'Ver archivo'}
+                                </Button>
+                              ) : (
+                                <span>{imp.fk_impresion_data?.nombre_archivo || 'Archivo'}</span>
+                              )}
+                              <div>
+                                <Text type="secondary" style={{ fontSize: 11 }}>
+                                  Original: {imp.fk_impresion_data?.formato || '?'} • {imp.fk_impresion_data?.color ? 'Color' : 'B/N'} • {imp.cantidadCopias} cop.
+                                </Text>
+                              </div>
+                            </Space>
+                          )
+                        },
+                        {
+                          title: '📎 Nuevo archivo',
+                          key: 'nuevo_archivo',
+                          width: 180,
+                          render: (_, imp) => {
+                            const impresionId = imp.fk_impresion_data?.id || imp.fk_impresion;
+                            return (
+                              <Upload
+                                beforeUpload={(file) => handleFileChange(impresionId, file)}
+                                maxCount={1}
+                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                showUploadList={{
+                                  showRemoveIcon: true
+                                }}
+                                onRemove={() => {
+                                  setArchivosCorreccion(prev => {
+                                    const newState = {...prev};
+                                    delete newState[impresionId];
+                                    return newState;
+                                  });
+                                }}
+                              >
+                                <Button icon={<UploadOutlined />} size="small" style={{ fontSize: 12 }}>
+                                  {archivosCorreccion[impresionId]?.file ? 'Cambiar' : 'Seleccionar'}
+                                </Button>
+                              </Upload>
+                            );
+                          }
+                        },
+                        {
+                          title: 'Formato',
+                          key: 'formato',
+                          width: 100,
+                          render: (_, imp) => {
+                            const impresionId = imp.fk_impresion_data?.id || imp.fk_impresion;
+                            const defaultFormato = imp.fk_impresion_data?.formato || 'A4';
+                            return (
+                              <Select
+                                size="small"
+                                style={{ width: '100%' }}
+                                value={archivosCorreccion[impresionId]?.formato || defaultFormato}
+                                onChange={(value) => handleChangeFormatoCorreccion(impresionId, value)}
+                                disabled={!archivosCorreccion[impresionId]?.file}
+                              >
+                                <Select.Option value="A4">A4</Select.Option>
+                                <Select.Option value="A3">A3</Select.Option>
+                              </Select>
+                            );
+                          }
+                        },
+                        {
+                          title: 'Color',
+                          key: 'color',
+                          width: 140,
+                          render: (_, imp) => {
+                            const impresionId = imp.fk_impresion_data?.id || imp.fk_impresion;
+                            const defaultColor = imp.fk_impresion_data?.color ? 'color' : 'blanco y negro';
+                            return (
+                              <Select
+                                size="small"
+                                style={{ width: '100%' }}
+                                value={archivosCorreccion[impresionId]?.color || defaultColor}
+                                onChange={(value) => handleChangeColorCorreccion(impresionId, value)}
+                                disabled={!archivosCorreccion[impresionId]?.file}
+                              >
+                                <Select.Option value="blanco y negro">Blanco y Negro</Select.Option>
+                                <Select.Option value="color">Color</Select.Option>
+                              </Select>
+                            );
+                          }
+                        },
+                        {
+                          title: 'Copias',
+                          key: 'copias',
+                          width: 80,
+                          align: 'center',
+                          render: (_, imp) => {
+                            const impresionId = imp.fk_impresion_data?.id || imp.fk_impresion;
+                            const defaultCopias = imp.cantidadCopias || 1;
+                            return (
+                              <InputNumber
+                                size="small"
+                                min={1}
+                                max={100}
+                                value={archivosCorreccion[impresionId]?.copias || defaultCopias}
+                                onChange={(value) => handleChangeCopiasCorreccion(impresionId, value)}
+                                disabled={!archivosCorreccion[impresionId]?.file}
+                                style={{ width: '100%' }}
+                              />
+                            );
+                          }
+                        },
+                        {
+                          title: 'Subtotal nuevo',
+                          key: 'subtotal_nuevo',
+                          width: 110,
+                          align: 'right',
+                          render: (_, imp) => {
+                            const impresionId = imp.fk_impresion_data?.id || imp.fk_impresion;
+                            const archivo = archivosCorreccion[impresionId];
+                            if (!archivo?.file) {
+                              return <Text type="secondary">-</Text>;
+                            }
+                            const subtotal = calcularSubtotal(archivo.formato, archivo.color, archivo.copias);
+                            return <Text strong style={{ color: '#1890ff' }}>${subtotal}</Text>;
+                          }
+                        },
+                        {
+                          title: 'Estado',
+                          key: 'estado_upload',
+                          width: 130,
+                          align: 'center',
+                          render: (_, imp) => {
+                            const impresionId = imp.fk_impresion_data?.id || imp.fk_impresion;
+                            return archivosCorreccion[impresionId]?.file ? (
+                              <Tag color="green" style={{ fontSize: 11 }}>
+                                ✓ Listo
+                              </Tag>
+                            ) : (
+                              <Tag color="orange" style={{ fontSize: 11 }}>
+                                Pendiente
+                              </Tag>
+                            );
+                          }
+                        },
+                      ]}
+                    />
+                    <div style={{ textAlign: 'center' }}>
+                      <Button 
+                        type="primary" 
+                        size="large"
+                        icon={<UploadOutlined />}
+                        onClick={handleEnviarCorreccion}
+                        loading={enviandoCorreccion}
+                        disabled={Object.keys(archivosCorreccion).length === 0}
+                        style={{ 
+                          height: 45,
+                          fontSize: 16,
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        Enviar archivos corregidos ({Object.keys(archivosCorreccion).length})
+                      </Button>
+                      {Object.keys(archivosCorreccion).length === 0 && (
+                        <div style={{ marginTop: 8 }}>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Selecciona al menos un archivo para continuar
+                          </Text>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <Table
-                    dataSource={(pedidoSeleccionado.detalle_impresiones || []).filter(imp => imp.estado === 'Requiere Corrección')}
-                    rowKey="id"
-                    pagination={false}
-                    size="small"
-                    columns={[
-                      { title: 'Archivo', dataIndex: 'nombre_archivo' },
-                      {
-                        title: 'Nuevo archivo',
-                        key: 'nuevo_archivo',
-                        render: () => (
-                          <input type="file" disabled style={{ opacity: 0.5 }} title="Próximamente" />
-                        ),
-                      },
-                      {
-                        title: 'Estado',
-                        key: 'estado',
-                        render: () => <Tag color="orange">Pendiente de corrección</Tag>,
-                      },
-                    ]}
-                  />
-                  <Button type="primary" disabled style={{ marginTop: 12 }}>
-                    Enviar archivos corregidos (Próximamente)
-                  </Button>
+                  <Divider />
                 </div>
               )}
               <div style={{ overflowX: 'auto', marginBottom: 16 }}>

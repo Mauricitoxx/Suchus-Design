@@ -206,6 +206,136 @@ class PedidoViewSet(viewsets.ModelViewSet):
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    @action(detail=True, methods=['post'])
+    def corregir_archivos(self, request, pk=None):
+        """
+        Permite al cliente subir archivos corregidos para un pedido con estado "Requiere Corrección"
+        Recalcula el precio del pedido basado en formato, color y cantidad de copias
+        """
+        try:
+            pedido = self.get_object()
+            
+            # Verificar que el pedido pertenece al usuario
+            if pedido.fk_usuario != request.user:
+                return Response(
+                    {"error": "No tienes permiso para modificar este pedido"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Verificar que el pedido requiere corrección
+            if pedido.estado != 'Requiere Corrección':
+                return Response(
+                    {"error": "Este pedido no requiere corrección"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            import json
+            import uuid
+            from django.core.files.base import ContentFile
+            from cloudinary_storage.storage import RawMediaCloudinaryStorage
+            
+            # Obtener lista de impresiones a corregir con sus nuevos archivos y configuración
+            archivos_corregidos = json.loads(request.data.get('archivos_corregidos', '[]'))
+            
+            if not archivos_corregidos:
+                return Response(
+                    {"error": "Debes proporcionar al menos un archivo corregido"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            storage = RawMediaCloudinaryStorage()
+            
+            # Tabla de precios por hoja
+            precios = {
+                'A4': {'blanco y negro': 20, 'color': 40},
+                'A3': {'blanco y negro': 30, 'color': 60},
+            }
+            
+            # Actualizar cada impresión con el nuevo archivo y recalcular subtotal
+            for i, archivo_data in enumerate(archivos_corregidos):
+                impresion_id = archivo_data.get('impresion_id')
+                nuevo_formato = archivo_data.get('formato', 'A4')
+                nuevo_color = archivo_data.get('color', 'blanco y negro')
+                nuevas_copias = int(archivo_data.get('copias', 1))
+                archivo_nuevo = request.FILES.get(f'archivo_{i}')
+                
+                if not archivo_nuevo or not impresion_id:
+                    continue
+                
+                try:
+                    # Buscar la impresión dentro de este pedido
+                    detalle_impresion = PedidoImpresionDetalle.objects.get(
+                        fk_pedido=pedido,
+                        fk_impresion_id=impresion_id
+                    )
+                    impresion = detalle_impresion.fk_impresion
+                    
+                    # Subir nuevo archivo a Cloudinary
+                    extension = os.path.splitext(archivo_nuevo.name)[1]
+                    nombre_archivo_nube = f"impresiones/corregidos/{uuid.uuid4()}{extension}"
+                    path_almacenado = storage.save(nombre_archivo_nube, archivo_nuevo)
+                    url_cloudinary = storage.url(path_almacenado)
+                    
+                    # Actualizar la impresión con los nuevos datos
+                    impresion.archivo = archivo_nuevo
+                    impresion.url = url_cloudinary
+                    impresion.nombre_archivo = archivo_nuevo.name
+                    impresion.formato = nuevo_formato
+                    impresion.color = (nuevo_color == 'color')
+                    impresion.save()
+                    
+                    # Recalcular el subtotal del detalle
+                    precio_por_hoja = precios.get(nuevo_formato, {}).get(nuevo_color, 20)
+                    nuevo_subtotal = precio_por_hoja * nuevas_copias
+                    
+                    detalle_impresion.cantidadCopias = nuevas_copias
+                    detalle_impresion.subtotal = nuevo_subtotal
+                    detalle_impresion.save()
+                    
+                except PedidoImpresionDetalle.DoesNotExist:
+                    continue
+            
+            # Recalcular el total del pedido
+            total_productos = sum(
+                d.subtotal for d in pedido.pedidoproductodetalle_set.all()
+            )
+            total_impresiones = sum(
+                d.subtotal for d in pedido.pedidoimpresiondetalle_set.all()
+            )
+            total_bruto = total_productos + total_impresiones
+            
+            # Aplicar descuento del usuario
+            porcentaje_descuento = 0
+            if hasattr(request.user, 'usuarioTipo') and request.user.usuarioTipo:
+                porcentaje_descuento = request.user.usuarioTipo.descuento
+            
+            pedido.total = total_bruto * (1 - (porcentaje_descuento / 100))
+            
+            # Cambiar el estado del pedido a "Pendiente" y limpiar motivo de corrección
+            pedido.estado = "Pendiente"
+            pedido.motivo_correccion = None
+            pedido.save()
+            
+            # Registrar en el historial
+            PedidoEstadoHistorial.objects.create(
+                fk_pedido=pedido,
+                estado="Pendiente"
+            )
+            
+            serializer = self.get_serializer(pedido)
+            return Response({
+                "message": "Archivos corregidos subidos exitosamente. El precio ha sido recalculado.",
+                "pedido": serializer.data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            import traceback
+            print(traceback.format_exc())
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         try:
@@ -941,11 +1071,13 @@ class ReporteViewSet(viewsets.ModelViewSet):
             # 2. Fechas
             f_inicio = self.request.data.get('fecha_inicio')
             f_fin = self.request.data.get('fecha_fin')
+            incluir_descuentos = self.request.data.get('incluir_descuentos', False)
             print(f"Rango: {f_inicio} a {f_fin}")
+            print(f"Incluir descuentos: {incluir_descuentos}")
 
             # 3. Cálculo
             print("Calculando datos integrales...")
-            calculos = self.calcular_datos_integrales(f_inicio, f_fin)
+            calculos = self.calcular_datos_integrales(f_inicio, f_fin, incluir_descuentos)
             
             # 4. Guardado
             print("Guardando en BD...")
@@ -960,7 +1092,7 @@ class ReporteViewSet(viewsets.ModelViewSet):
             print(traceback.format_exc()) # Esto te dice la línea exacta del error
             raise serializers.ValidationError({"error": str(e)})
 
-    def calcular_datos_integrales(self, inicio, fin):
+    def calcular_datos_integrales(self, inicio, fin, incluir_descuentos=False):
         from django.db.models import Count, Sum, Avg
         import traceback
 
@@ -1010,7 +1142,52 @@ class ReporteViewSet(viewsets.ModelViewSet):
                     "cantidad": item['cantidad']
                 })
 
-            return {
+            # --- 3. SECCIÓN DESCUENTOS (si está activada) ---
+            descuentos_info = None
+            if incluir_descuentos:
+                total_descuentos = 0
+                descuentos_por_tipo = {}
+                
+                for pedido in pedidos_qs.select_related('fk_usuario__usuarioTipo'):
+                    usuario = pedido.fk_usuario
+                    if usuario and hasattr(usuario, 'usuarioTipo') and usuario.usuarioTipo:
+                        porcentaje_desc = usuario.usuarioTipo.descuento
+                        tipo_nombre = usuario.usuarioTipo.descripcion
+                        
+                        if porcentaje_desc > 0:
+                            # Calcular monto sin descuento: total = monto_sin_desc * (1 - desc/100)
+                            # Entonces: monto_sin_desc = total / (1 - desc/100)
+                            monto_sin_descuento = pedido.total / (1 - (porcentaje_desc / 100))
+                            descuento_aplicado = monto_sin_descuento - pedido.total
+                            total_descuentos += descuento_aplicado
+                            
+                            # Acumular por tipo de usuario
+                            if tipo_nombre not in descuentos_por_tipo:
+                                descuentos_por_tipo[tipo_nombre] = {
+                                    'porcentaje': porcentaje_desc,
+                                    'total_descuentos': 0,
+                                    'cantidad_pedidos': 0
+                                }
+                            descuentos_por_tipo[tipo_nombre]['total_descuentos'] += descuento_aplicado
+                            descuentos_por_tipo[tipo_nombre]['cantidad_pedidos'] += 1
+                
+                # Convertir a lista para JSON
+                descuentos_por_tipo_lista = [
+                    {
+                        'tipo_usuario': tipo,
+                        'porcentaje': data['porcentaje'],
+                        'total_descuentos': round(float(data['total_descuentos']), 2),
+                        'cantidad_pedidos': data['cantidad_pedidos']
+                    }
+                    for tipo, data in descuentos_por_tipo.items()
+                ]
+                
+                descuentos_info = {
+                    'total_descuentos_otorgados': round(float(total_descuentos), 2),
+                    'descuentos_por_tipo_usuario': descuentos_por_tipo_lista
+                }
+
+            resultado = {
                 "resumen_general": {
                     "monto_total_periodo": float(stats_globales['total_bruto'] or 0),
                     "cantidad_total_pedidos": pedidos_qs.count(),
@@ -1022,6 +1199,12 @@ class ReporteViewSet(viewsets.ModelViewSet):
                     "dias_con_mas_ventas": dias_mas_ventas
                 }
             }
+            
+            # Agregar descuentos solo si fue solicitado
+            if descuentos_info:
+                resultado["descuentos"] = descuentos_info
+            
+            return resultado
         except Exception as e:
             print(f"Error en cálculos: {e}")
             print(traceback.format_exc())

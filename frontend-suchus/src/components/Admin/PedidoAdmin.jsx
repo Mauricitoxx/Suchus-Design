@@ -62,6 +62,7 @@ const PedidoAdmin = () => {
       'Preparado': 'purple',
       'Retirado': 'green',
       'Cancelado': 'default',
+      'Requiere Corrección': 'red',
     };
     return colores[estado] ?? 'default';
   };
@@ -530,45 +531,28 @@ const PedidoAdmin = () => {
               <Option value="Cancelado">Cancelado</Option>
               <Option value="Requiere Corrección">Requiere Corrección</Option>
             </Select>
-                {/* Modal motivo corrección */}
-                <Modal
-                  title="Motivo de corrección requerido"
-                  open={modalMotivoVisible}
-                  onOk={async () => {
-                    if (!motivoCorreccion.trim()) {
-                      message.warning('Debes ingresar un motivo de corrección');
-                      return;
-                    }
-                    await handleCambiarEstado(pedidoMotivoId, 'Requiere Corrección', motivoCorreccion);
-                    setModalMotivoVisible(false);
-                    setMotivoCorreccion('');
-                    setPedidoMotivoId(null);
-                  }}
-                  onCancel={() => {
-                    setModalMotivoVisible(false);
-                    setMotivoCorreccion('');
-                    setPedidoMotivoId(null);
-                  }}
-                  okText="Enviar motivo"
-                  cancelText="Cancelar"
-                  mask={false}
-                  maskClosable={false}
-                  style={{ top: 32 }}
-                >
-                  <p>Por favor, ingresa el motivo por el cual el archivo requiere corrección. Este mensaje será visible para el cliente.</p>
-                  <Input.TextArea
-                    value={motivoCorreccion}
-                    onChange={e => setMotivoCorreccion(e.target.value)}
-                    rows={4}
-                    maxLength={500}
-                    placeholder="Describe el motivo de la corrección..."
-                  />
-                </Modal>
           </Space>
         </Space>
       ),
     },
   ];
+
+  const handleEnviarMotivo = async () => {
+    if (!motivoCorreccion.trim()) {
+      message.warning('Debes ingresar un motivo de corrección');
+      return;
+    }
+    await handleCambiarEstado(pedidoMotivoId, 'Requiere Corrección', motivoCorreccion);
+    setModalMotivoVisible(false);
+    setMotivoCorreccion('');
+    setPedidoMotivoId(null);
+  };
+
+  const handleCancelarMotivo = () => {
+    setModalMotivoVisible(false);
+    setMotivoCorreccion('');
+    setPedidoMotivoId(null);
+  };
 
   return (
     <div style={{ padding: '24px', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
@@ -665,6 +649,39 @@ const PedidoAdmin = () => {
           />
         </div>
       </Spin>
+
+      {/* Modal motivo corrección */}
+      <Modal
+        title="Motivo de corrección requerido"
+        open={modalMotivoVisible}
+        onCancel={handleCancelarMotivo}
+        footer={[
+          <Button key="cancel" onClick={handleCancelarMotivo}>
+            Cancelar
+          </Button>,
+          <Button key="submit" type="primary" onClick={handleEnviarMotivo}>
+            Enviar motivo
+          </Button>
+        ]}
+        width="min(600px, 95vw)"
+        style={{ top: 16 }}
+        styles={{ body: { maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' } }}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ marginBottom: 12, color: '#595959' }}>
+            Por favor, ingresa el motivo por el cual el archivo requiere corrección. Este mensaje será visible para el cliente.
+          </p>
+          <Input.TextArea
+            value={motivoCorreccion}
+            onChange={e => setMotivoCorreccion(e.target.value)}
+            rows={5}
+            maxLength={500}
+            placeholder="Describe el motivo de la corrección..."
+            showCount
+            style={{ resize: 'none' }}
+          />
+        </div>
+      </Modal>
 
       {/* Modal confirmar cancelar pedido */}
       <Modal

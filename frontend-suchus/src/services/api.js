@@ -145,6 +145,14 @@ const pedidosAPI = {
     const response = await api.get('pedidos/mis_pedidos/', { params });
     return response.data;
   },
+  corregirArchivos: async (id, formData) => {
+    const response = await api.post(`pedidos/${id}/corregir_archivos/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
 };
 
 // ========== IMPRESIONES ==========
