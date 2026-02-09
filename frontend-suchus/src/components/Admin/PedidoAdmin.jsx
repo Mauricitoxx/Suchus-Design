@@ -15,6 +15,10 @@ const PedidoAdmin = () => {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
+  // Modal motivo corrección
+  const [modalMotivoVisible, setModalMotivoVisible] = useState(false);
+  const [motivoCorreccion, setMotivoCorreccion] = useState('');
+  const [pedidoMotivoId, setPedidoMotivoId] = useState(null);
   
   // Estado para la búsqueda
   const [searchText, setSearchText] = useState('');
@@ -417,11 +421,11 @@ const PedidoAdmin = () => {
     return nombre.includes(busqueda) || email.includes(busqueda);
   });
 
-  const handleCambiarEstado = async (id, nuevoEstado) => {
+  const handleCambiarEstado = async (id, nuevoEstado, motivo = null) => {
     try {
-      await pedidosAPI.cambiarEstado(id, nuevoEstado);
+      await pedidosAPI.cambiarEstado(id, nuevoEstado, motivo);
       message.success(`Pedido #${id} actualizado`);
-      fetchPedidos(); 
+      fetchPedidos();
     } catch (error) {
       message.error("No se pudo actualizar el estado");
     }
@@ -477,6 +481,7 @@ const PedidoAdmin = () => {
         { text: 'Preparado', value: 'Preparado' },
         { text: 'Retirado', value: 'Retirado' },
         { text: 'Cancelado', value: 'Cancelado' },
+        { text: 'Requiere Corrección', value: 'Requiere Corrección' },
       ],
       onFilter: (value, record) => record.estado === value,
       render: (estado) => <Tag color={getColorEstado(estado)}>{estado?.toUpperCase() || 'S/E'}</Tag>,
@@ -503,11 +508,15 @@ const PedidoAdmin = () => {
             <Select
               value={record.estado}
               size="small"
-              style={{ width: 140 }}
+              style={{ width: 170 }}
               onChange={(value) => {
                 if (value === 'Cancelado') {
                   setPedidoACancelar(record.id);
                   setConfirmCancelarVisible(true);
+                } else if (value === 'Requiere Corrección') {
+                  setPedidoMotivoId(record.id);
+                  setMotivoCorreccion('');
+                  setModalMotivoVisible(true);
                 } else {
                   handleCambiarEstado(record.id, value);
                 }
@@ -519,7 +528,42 @@ const PedidoAdmin = () => {
               <Option value="Preparado">Preparado</Option>
               <Option value="Retirado">Retirado</Option>
               <Option value="Cancelado">Cancelado</Option>
+              <Option value="Requiere Corrección">Requiere Corrección</Option>
             </Select>
+                {/* Modal motivo corrección */}
+                <Modal
+                  title="Motivo de corrección requerido"
+                  open={modalMotivoVisible}
+                  onOk={async () => {
+                    if (!motivoCorreccion.trim()) {
+                      message.warning('Debes ingresar un motivo de corrección');
+                      return;
+                    }
+                    await handleCambiarEstado(pedidoMotivoId, 'Requiere Corrección', motivoCorreccion);
+                    setModalMotivoVisible(false);
+                    setMotivoCorreccion('');
+                    setPedidoMotivoId(null);
+                  }}
+                  onCancel={() => {
+                    setModalMotivoVisible(false);
+                    setMotivoCorreccion('');
+                    setPedidoMotivoId(null);
+                  }}
+                  okText="Enviar motivo"
+                  cancelText="Cancelar"
+                  mask={false}
+                  maskClosable={false}
+                  style={{ top: 32 }}
+                >
+                  <p>Por favor, ingresa el motivo por el cual el archivo requiere corrección. Este mensaje será visible para el cliente.</p>
+                  <Input.TextArea
+                    value={motivoCorreccion}
+                    onChange={e => setMotivoCorreccion(e.target.value)}
+                    rows={4}
+                    maxLength={500}
+                    placeholder="Describe el motivo de la corrección..."
+                  />
+                </Modal>
           </Space>
         </Space>
       ),
@@ -705,8 +749,27 @@ const PedidoAdmin = () => {
             {(pedidoSeleccionado.detalle_impresiones && pedidoSeleccionado.detalle_impresiones.length > 0) && (
               <>
                 <Divider orientation="left">Impresiones</Divider>
+                {pedidoSeleccionado.estado === 'Requiere Corrección' && pedidoSeleccionado.motivo_correccion && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{
+                      background: '#fffbe6',
+                      border: '1px solid #ffe58f',
+                      borderRadius: 6,
+                      padding: 16,
+                      marginBottom: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12
+                    }}>
+                      <span style={{ fontSize: 22, color: '#faad14' }}>⚠️</span>
+                      <div>
+                        <b>Motivo de corrección:</b><br />
+                        {pedidoSeleccionado.motivo_correccion}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div style={{ overflowX: 'auto', marginBottom: 16 }}>
-                  {/* Reemplaza la tabla de impresiones dentro del modal con esta versión */}
                   <Table
                     dataSource={pedidoSeleccionado.detalle_impresiones}
                     pagination={false}
@@ -714,16 +777,16 @@ const PedidoAdmin = () => {
                     size="small"
                     scroll={{ x: 'max-content' }}
                     columns={[
-                      { 
-                        title: 'Archivo', 
+                      {
+                        title: 'Archivo',
                         key: 'archivo',
                         render: (_, imp) => (
                           <Space>
                             {imp.fk_impresion_data?.url ? (
-                              <Button 
-                                type="link" 
-                                icon={<FilePdfOutlined />} 
-                                href={imp.fk_impresion_data.url} 
+                              <Button
+                                type="link"
+                                icon={<FilePdfOutlined />}
+                                href={imp.fk_impresion_data.url}
                                 target="_blank"
                                 style={{ padding: 0 }}
                               >
@@ -743,6 +806,16 @@ const PedidoAdmin = () => {
                         dataIndex: 'subtotal',
                         width: 100,
                         render: (s) => <strong>${Number(s).toLocaleString()}</strong>
+                      },
+                      {
+                        title: 'Estado de archivo',
+                        key: 'estado_archivo',
+                        render: (imp) =>
+                          imp.estado === 'Requiere Corrección' ? (
+                            <Tag color="orange">Requiere Corrección</Tag>
+                          ) : (
+                            <Tag color="green">OK</Tag>
+                          ),
                       },
                     ]}
                   />

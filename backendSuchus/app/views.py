@@ -187,9 +187,15 @@ class PedidoViewSet(viewsets.ModelViewSet):
     def cambiar_estado(self, request, pk=None):
         pedido = self.get_object()
         nuevo_estado = request.data.get('estado')
+        motivo_correccion = request.data.get('motivo_correccion', None)
 
         if nuevo_estado in dict(Pedido.ESTADO).keys():
             pedido.estado = nuevo_estado
+            # Si el estado es 'Requiere Corrección', guardar el motivo
+            if nuevo_estado == 'Requiere Corrección' and motivo_correccion:
+                pedido.motivo_correccion = motivo_correccion
+            elif nuevo_estado != 'Requiere Corrección':
+                pedido.motivo_correccion = None
             pedido.save()
             PedidoEstadoHistorial.objects.create(fk_pedido=pedido, estado=nuevo_estado)
             serializer = self.get_serializer(pedido)

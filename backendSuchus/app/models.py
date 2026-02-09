@@ -37,10 +37,12 @@ class Pedido(models.Model):
         ("En proceso", "en proceso"),
         ("Preparado", "preparado"),
         ("Retirado", "retirado"),
-        ("Cancelado", "cancelado")
+        ("Cancelado", "cancelado"),
+        ("Requiere Corrección", "requiere corrección")
     ]
     estado = models.CharField(max_length=100, choices=ESTADO, default="Pendiente")
     observacion = models.TextField(null=True, blank=True)
+    motivo_correccion = models.TextField(null=True, blank=True)
     total = models.FloatField(null=False)
     fecha = models.DateField(auto_now_add=True)
     fk_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)

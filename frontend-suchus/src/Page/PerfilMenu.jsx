@@ -174,26 +174,10 @@ const PerfilMenu = () => {
           </div>
         </Modal>
 
-        <Card title="Historial de pedidos" bordered style={{ marginTop: 24 }}>
-          <Spin spinning={loadingPedidos}>
-            {pedidos.length > 0 ? (
-              <List
-                dataSource={pedidos}
-                renderItem={item => (
-                  <List.Item>
-                    <List.Item.Meta
-                      title={`Pedido #${item.id}`}
-                      description={`Fecha: ${new Date(item.created_at || item.fecha_pedido).toLocaleDateString('es-AR')} | Estado: ${item.estado}`}
-                    />
-                  </List.Item>
-                )}
-              />
-            ) : (
-              <p style={{ textAlign: 'center', color: '#999', padding: '20px 0' }}>
-                No hay pedidos en tu historial
-              </p>
-            )}
-          </Spin>
+        <Card bordered style={{ marginTop: 24, textAlign: 'center' }}>
+          <Button type="primary" size="large" onClick={() => navigate('/mis-pedidos')}>
+            Ver historial de pedidos
+          </Button>
         </Card>
       </div>
     </div>
