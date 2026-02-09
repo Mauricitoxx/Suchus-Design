@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container { font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; }
+        .header { background-color: #ff4d4f; color: white; padding: 20px; text-align: center; }
+        .content { padding: 30px; color: #333; line-height: 1.6; }
+        .box { background-color: #fff1f0; border-left: 4px solid #ff4d4f; padding: 15px; margin: 20px 0; }
+        .boton { display: inline-block; padding: 12px 24px; background-color: #722ed1; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 15px; }
+        .footer { text-align: center; font-size: 12px; color: #888; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="margin: 0;">⚠️ Tu Pedido Requiere Corrección</h2>
+        </div>
+        <div class="content">
+            <p>Hola {{ usuario_nombre }},</p>
+            <p>Hemos revisado tu pedido <strong>#{{ pedido_id }}</strong> y necesitamos que realices algunas correcciones antes de continuar.</p>
+            
+            <div class="box">
+                <p style="margin: 5px 0;"><strong>📋 Motivo de la Corrección:</strong></p>
+                <p style="margin: 15px 0; font-size: 15px; line-height: 1.8;">{{ motivo }}</p>
+            </div>
+
+            <p><strong>¿Qué tenés que hacer?</strong></p>
+            <ol style="line-height: 2;">
+                <li>Ingresá a tu cuenta en Suchus Design</li>
+                <li>Andá a "Mis Pedidos"</li>
+                <li>Encontrá el pedido <strong>#{{ pedido_id }}</strong></li>
+                <li>Subí los archivos corregidos según las indicaciones</li>
+            </ol>
+
+            <p style="background-color: #e6f7ff; padding: 15px; border-radius: 5px; border-left: 4px solid #1890ff;">
+                <strong>💡 Importante:</strong> Una vez que subas los archivos corregidos, revisaremos tu pedido nuevamente y lo procesaremos lo antes posible.
+            </p>
+        </div>
+        <div class="footer">
+            Este es un correo automático generado por Suchus Design.<br>
+            Si tenés dudas, contactanos directamente.
+        </div>
+    </div>
+</body>
+</html>

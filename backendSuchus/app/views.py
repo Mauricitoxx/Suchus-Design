@@ -27,6 +27,7 @@ from .serializers import (UsuarioRegisterSerializer, UsuarioLoginSerializer, Ped
                           ImpresionSerializer, ProductoSerializer, UsuarioSerializer,
                           UsuarioCreateSerializer, UsuarioUpdateSerializer, ReporteSerializer)
 from .serializers import UsuarioTipoSerializer
+from .notifications import enviar_notificacion_cambio_estado, enviar_notificacion_correccion_requerida
 # Create your views here.
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -189,6 +190,15 @@ class PedidoViewSet(viewsets.ModelViewSet):
         nuevo_estado = request.data.get('estado')
         motivo_correccion = request.data.get('motivo_correccion', None)
 
+        print(f"\n{'='*60}")
+        print(f"🔄 CAMBIO DE ESTADO DE PEDIDO")
+        print(f"{'='*60}")
+        print(f"Pedido ID: {pedido.id}")
+        print(f"Estado actual: {pedido.estado}")
+        print(f"Nuevo estado: {nuevo_estado}")
+        print(f"Usuario: {pedido.fk_usuario.nombre} ({pedido.fk_usuario.email})")
+        print(f"{'='*60}\n")
+
         if nuevo_estado in dict(Pedido.ESTADO).keys():
             pedido.estado = nuevo_estado
             # Si el estado es 'Requiere Corrección', guardar el motivo
@@ -198,6 +208,36 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 pedido.motivo_correccion = None
             pedido.save()
             PedidoEstadoHistorial.objects.create(fk_pedido=pedido, estado=nuevo_estado)
+            
+            print(f"✅ Pedido #{pedido.id} actualizado a estado: {nuevo_estado}")
+            
+            # ===== SISTEMA DE NOTIFICACIONES =====
+            # Enviar email al cliente (aislado para que no afecte el cambio de estado si falla)
+            print(f"📧 Intentando enviar notificación por email...")
+            try:
+                if nuevo_estado == 'Requiere Corrección' and motivo_correccion:
+                    # Email especial para correcciones
+                    resultado = enviar_notificacion_correccion_requerida(pedido, motivo_correccion)
+                    if resultado:
+                        print(f"✅ Notificación de corrección enviada exitosamente")
+                    else:
+                        print(f"⚠️ No se pudo enviar notificación de corrección")
+                else:
+                    # Email general de cambio de estado
+                    resultado = enviar_notificacion_cambio_estado(pedido)
+                    if resultado:
+                        print(f"✅ Notificación enviada exitosamente")
+                    else:
+                        print(f"⚠️ No se pudo enviar notificación")
+            except Exception as e:
+                # Si falla el email, solo lo registramos pero NO interrumpimos el flujo
+                import traceback
+                print(f"❌ [ADVERTENCIA] Error al enviar notificación: {e}")
+                print(f"Traceback completo:\n{traceback.format_exc()}")
+            # ===== FIN NOTIFICACIONES =====
+            
+            print(f"\n{'='*60}\n")
+            
             serializer = self.get_serializer(pedido)
             return Response(serializer.data)
 
@@ -321,6 +361,17 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 fk_pedido=pedido,
                 estado="Pendiente"
             )
+            
+            # Enviar notificación al cliente informando que recibimos sus archivos corregidos
+            print(f"📧 Enviando notificación de archivos corregidos recibidos...")
+            try:
+                resultado = enviar_notificacion_cambio_estado(pedido)
+                if resultado:
+                    print(f"✅ Notificación enviada exitosamente")
+                else:
+                    print(f"⚠️ No se pudo enviar notificación")
+            except Exception as e:
+                print(f"❌ Error al enviar notificación: {e}")
             
             serializer = self.get_serializer(pedido)
             return Response({

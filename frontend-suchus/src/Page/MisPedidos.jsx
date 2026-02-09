@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Card, Typography, Spin, Button, Modal, Descriptions, Divider, Input, DatePicker, Space, message, Upload, Select, InputNumber } from 'antd';
-import { EyeOutlined, ClockCircleOutlined, SearchOutlined, FilePdfOutlined, CalendarOutlined, ArrowLeftOutlined, UploadOutlined } from '@ant-design/icons';
+import { Table, Tag, Card, Typography, Spin, Button, Modal, Descriptions, Divider, Input, DatePicker, Space, message, Upload, Select, InputNumber, Alert } from 'antd';
+import { EyeOutlined, ClockCircleOutlined, SearchOutlined, FilePdfOutlined, CalendarOutlined, ArrowLeftOutlined, UploadOutlined, BellOutlined } from '@ant-design/icons';
 import { pedidosAPI } from '../services/api';
 import Navbar from './Navbar';
 import dayjs from 'dayjs';
@@ -210,7 +210,23 @@ const MisPedidos = () => {
         { text: 'Requiere Corrección', value: 'Requiere Corrección' },
       ],
       onFilter: (value, record) => record.estado === value,
-      render: (estado) => <Tag color={getColorEstado(estado)}>{estado?.toUpperCase() || 'S/E'}</Tag>,
+      render: (estado, record) => {
+        // Verificar si el pedido fue actualizado en las últimas 48 horas
+        const ahora = dayjs();
+        const ultimaActualizacion = dayjs(record.updated_at);
+        const esReciente = ahora.diff(ultimaActualizacion, 'hour') <= 48;
+        
+        return (
+          <Space direction="vertical" size="small">
+            <Tag color={getColorEstado(estado)}>{estado?.toUpperCase() || 'S/E'}</Tag>
+            {esReciente && (
+              <Tag color="gold" style={{ fontSize: 11 }}>
+                ⚠️ Actualizado
+              </Tag>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: 'Acciones',
@@ -247,6 +263,31 @@ const MisPedidos = () => {
               <Text type="secondary">Historial de tus solicitudes y compras realizadas.</Text>
             </div>
           </div>
+          
+          {/* Alerta de pedidos con actualizaciones recientes */}
+          {(() => {
+            const ahora = dayjs();
+            const pedidosActualizados = pedidos.filter(p => {
+              const ultimaActualizacion = dayjs(p.updated_at);
+              return ahora.diff(ultimaActualizacion, 'hour') <= 48;
+            });
+            
+            if (pedidosActualizados.length > 0) {
+              return (
+                <Alert
+                  message={`¡Tenés ${pedidosActualizados.length} pedido${pedidosActualizados.length > 1 ? 's' : ''} con actualizaciones recientes!`}
+                  description="Los pedidos marcados con ⚠️ fueron actualizados en las últimas 48 horas. Revisá tu email para más detalles."
+                  type="info"
+                  icon={<BellOutlined />}
+                  showIcon
+                  closable
+                  style={{ marginBottom: 20 }}
+                />
+              );
+            }
+            return null;
+          })()}
+          
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', marginBottom: 24 }}>
             <Input
               placeholder="Buscar por ID..."

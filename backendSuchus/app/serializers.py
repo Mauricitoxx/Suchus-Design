@@ -226,8 +226,8 @@ class PedidoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pedido
         fields = ['id', 'estado', 'observacion', 'motivo_correccion', 'total', 'fecha', 'fk_usuario',
-                  'usuario_nombre', 'usuario_apellido', 'usuario_email', 'detalles', 'detalle_impresiones', 'historial_estados']
-        read_only_fields = ['id']
+                  'usuario_nombre', 'usuario_apellido', 'usuario_email', 'detalles', 'detalle_impresiones', 'historial_estados', 'updated_at']
+        read_only_fields = ['id', 'updated_at']
 
     def get_historial_estados(self, obj):
         from django.utils import timezone
