@@ -91,6 +91,7 @@ class Impresion(models.Model):
         ("A5", "A5 (148 × 210 mm)"),
         ("A6", "A6 (105 × 148 mm)"),
     ]
+    archivo = models.FileField(upload_to='impresiones/', null=True, blank=True)
     color = models.BooleanField(null=False)
     formato = models.CharField(max_length=3, choices=FORMATO, default="A4")
     url = models.CharField(null=False, max_length=300)

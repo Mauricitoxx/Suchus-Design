@@ -359,55 +359,55 @@ const PedidoAdmin = () => {
   };
 
   const handleConfirmarPedido = async () => {
-    if (itemsEnPedido.length === 0) {
-      message.warning('Agrega al menos un item (producto o impresión) al pedido');
-      return;
-    }
+    if (itemsEnPedido.length === 0) {
+      message.warning('Agrega al menos un item al pedido');
+      return;
+    }
 
-    if (!clienteSeleccionado || !clienteSeleccionado.id) {
-      message.error('Error: Cliente no seleccionado correctamente');
-      return;
-    }
+    if (!clienteSeleccionado || !clienteSeleccionado.id) {
+      message.error('Error: Cliente no seleccionado');
+      return;
+    }
 
-    setLoadingCrear(true);
-    try {
-      // Separar productos e impresiones
-      const productos = itemsEnPedido.filter(item => !item.esImpresion);
-      const impresiones = itemsEnPedido.filter(item => item.esImpresion);
+    setLoadingCrear(true);
+    try {
+      const productos = itemsEnPedido.filter(item => !item.esImpresion);
+      const impresiones = itemsEnPedido.filter(item => item.esImpresion);
 
-      const detallesProductos = productos.map(p => ({
-        fk_producto: Number(p.id),
-        cantidad: Number(p.cantidad) || 1,
-        precio_unitario: Number(p.precioUnitario) || 0
-      }));
+      const detallesProductos = productos.map(p => ({
+        fk_producto: Number(p.id),
+        cantidad: Number(p.cantidad) || 1,
+        precio_unitario: Number(p.precioUnitario) || 0
+      }));
 
-      const detallesImpresiones = impresiones.map(imp => ({
-        nombre_archivo: imp.nombre,
-        hojas: imp.detalles.hojas,
-        formato: imp.detalles.formato,
-        color: imp.detalles.color,
-        copias: imp.cantidad,
-        precio_unitario: imp.precioUnitario
-      }));
+      const detallesImpresiones = impresiones.map(imp => ({
+        nombre_archivo: imp.nombre,
+        hojas: imp.detalles.hojas,
+        formato: imp.detalles.formato,
+        color: imp.detalles.color,
+        copias: imp.cantidad,
+        precio_unitario: imp.precioUnitario
+      }));
 
-      const data = {
-        fk_usuario: Number(clienteSeleccionado.id),
-        detalles: detallesProductos,
-        impresiones: detallesImpresiones,
-        observacion: observaciones || ''
-      };
+      // LA CLAVE: Convertimos los arrays a STRING porque tu backend hace json.loads()
+      const data = {
+        fk_usuario: Number(clienteSeleccionado.id),
+        detalles: JSON.stringify(detallesProductos), 
+        impresiones: JSON.stringify(detallesImpresiones),
+        observacion: observaciones || ''
+      };
 
-      await pedidosAPI.create(data);
-      message.success('Pedido creado exitosamente');
-      handleCerrarModalCrear();
-      fetchPedidos();
-    } catch (error) {
-      console.error('Error al crear pedido:', error);
-      message.error(error.response?.data?.error || 'Error al crear el pedido');
-    } finally {
-      setLoadingCrear(false);
-    }
-  };
+      await pedidosAPI.create(data);
+      message.success('Pedido creado exitosamente');
+      handleCerrarModalCrear();
+      fetchPedidos();
+    } catch (error) {
+      console.error('Error al crear pedido:', error);
+      message.error(error.response?.data?.error || 'Error al crear el pedido');
+    } finally {
+      setLoadingCrear(false);
+    }
+  };
 
   const clientesFiltrados = clientes.filter(c => {
     if (!c) return false;
@@ -706,6 +706,7 @@ const PedidoAdmin = () => {
               <>
                 <Divider orientation="left">Impresiones</Divider>
                 <div style={{ overflowX: 'auto', marginBottom: 16 }}>
+                  {/* Reemplaza la tabla de impresiones dentro del modal con esta versión */}
                   <Table
                     dataSource={pedidoSeleccionado.detalle_impresiones}
                     pagination={false}
@@ -713,7 +714,27 @@ const PedidoAdmin = () => {
                     size="small"
                     scroll={{ x: 'max-content' }}
                     columns={[
-                      { title: 'Archivo', dataIndex: 'nombre_archivo', ellipsis: true },
+                      { 
+                        title: 'Archivo', 
+                        key: 'archivo',
+                        render: (_, imp) => (
+                          <Space>
+                            {imp.fk_impresion_data?.url ? (
+                              <Button 
+                                type="link" 
+                                icon={<FilePdfOutlined />} 
+                                href={imp.fk_impresion_data.url} 
+                                target="_blank"
+                                style={{ padding: 0 }}
+                              >
+                                {imp.fk_impresion_data.nombre_archivo || 'Ver archivo'}
+                              </Button>
+                            ) : (
+                              <span>{imp.nombre_archivo}</span>
+                            )}
+                          </Space>
+                        )
+                      },
                       { title: 'Formato', dataIndex: 'formato', width: 80 },
                       { title: 'Color', dataIndex: 'color', width: 120 },
                       { title: 'Copias', dataIndex: 'cantidadCopias', align: 'center', width: 80 },
