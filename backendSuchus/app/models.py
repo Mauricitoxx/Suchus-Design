@@ -33,13 +33,13 @@ class Usuario(models.Model):
 
 class Pedido(models.Model):
     ESTADO = [
-        ("En revisión", "en revisión"),
+        ("Pendiente", "pendiente"),
         ("En proceso", "en proceso"),
         ("Preparado", "preparado"),
         ("Retirado", "retirado"),
         ("Cancelado", "cancelado")
     ]
-    estado = models.CharField(max_length=100, choices=ESTADO, default="En revisión")
+    estado = models.CharField(max_length=100, choices=ESTADO, default="Pendiente")
     observacion = models.TextField(null=True, blank=True)
     total = models.FloatField(null=False)
     fecha = models.DateField(auto_now_add=True)

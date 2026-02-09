@@ -146,7 +146,7 @@ WSGI_APPLICATION = 'backendSuchus.wsgi.application'
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 if DATABASE_URL:
-    print(f"✅ Intentando conectar a Neon: {DATABASE_URL[:30]}...")
+    print(f"[OK] Conectando a Neon: {DATABASE_URL[:30]}...")
     
     # Si dj_database_url funciona, lo usamos (es lo ideal)
     if dj_database_url:
@@ -159,7 +159,7 @@ if DATABASE_URL:
         }
     else:
         # PLAN B: Configuración manual si dj_database_url falla
-        print("⚠️ dj_database_url no disponible, usando configuración manual.")
+        print("[AVISO] dj_database_url no disponible, usando config manual.")
         import urllib.parse as urlparse
         url = urlparse.urlparse(DATABASE_URL)
         DATABASES = {
@@ -176,7 +176,7 @@ if DATABASE_URL:
     # Esto es vital para Neon
     DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
 else:
-    print("❌ No hay DATABASE_URL, usando SQLite.")
+    print("[OK] No hay DATABASE_URL, usando SQLite.")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

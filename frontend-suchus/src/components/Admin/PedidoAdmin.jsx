@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Tag, Select, Button, message, Card, Typography, Space, Modal, Descriptions, Divider, Spin, Input, InputNumber, Tabs, Form, DatePicker } from 'antd';
 import { EyeOutlined, ClockCircleOutlined, ArrowLeftOutlined, SearchOutlined, PlusOutlined, DeleteOutlined, ShoppingOutlined, PrinterOutlined, FilePdfOutlined, FileImageOutlined, UserAddOutlined, CalendarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { pedidosAPI, usuariosAPI, productosAPI } from '../../services/api';
+import { pedidosAPI, usuariosAPI, productosAPI, usuariostipoAPI } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -40,6 +40,7 @@ const PedidoAdmin = () => {
   const [modalNuevoClienteVisible, setModalNuevoClienteVisible] = useState(false);
   const [formNuevoCliente] = Form.useForm();
   const [loadingNuevoCliente, setLoadingNuevoCliente] = useState(false);
+  const [tiposUsuario, setTiposUsuario] = useState([]);
 
   // Modal confirmar cancelar pedido
   const [confirmCancelarVisible, setConfirmCancelarVisible] = useState(false);
@@ -52,11 +53,11 @@ const PedidoAdmin = () => {
 
   const getColorEstado = (estado) => {
     const colores = {
-      'En revisión': 'orange',
+      'Pendiente': 'orange',
       'En proceso': 'blue',
       'Preparado': 'purple',
       'Retirado': 'green',
-      'Cancelado': 'volcano',
+      'Cancelado': 'default',
     };
     return colores[estado] ?? 'default';
   };
@@ -81,10 +82,21 @@ const PedidoAdmin = () => {
     }
   };
 
+  const cargarTiposUsuario = async () => {
+    try {
+      const data = await usuariostipoAPI.getTipos();
+      const lista = Array.isArray(data) ? data : (data.results || []);
+      setTiposUsuario(lista);
+    } catch (error) {
+      console.error('Error al cargar tipos de usuario:', error);
+    }
+  };
+
   useEffect(() => {
     fetchPedidos();
     cargarClientes();
     cargarProductos();
+    cargarTiposUsuario();
   }, []);
 
   const cargarClientes = async () => {
@@ -460,7 +472,7 @@ const PedidoAdmin = () => {
       key: 'estado',
       // Filtros rápidos en la columna
       filters: [
-        { text: 'En revisión', value: 'En revisión' },
+        { text: 'Pendiente', value: 'Pendiente' },
         { text: 'En proceso', value: 'En proceso' },
         { text: 'Preparado', value: 'Preparado' },
         { text: 'Retirado', value: 'Retirado' },
@@ -502,7 +514,7 @@ const PedidoAdmin = () => {
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <Option value="En revisión">En revisión</Option>
+              <Option value="Pendiente">Pendiente</Option>
               <Option value="En proceso">En proceso</Option>
               <Option value="Preparado">Preparado</Option>
               <Option value="Retirado">Retirado</Option>
@@ -1185,11 +1197,12 @@ const PedidoAdmin = () => {
             initialValue="Cliente"
             rules={[{ required: true, message: 'El tipo es requerido' }]}
           >
-            <Select placeholder="Selecciona un tipo">
-              <Option value="Cliente">Cliente</Option>
-              <Option value="Admin">Admin</Option>
-              <Option value="Frecuente">Frecuente</Option>
-              <Option value="Alumno">Alumno</Option>
+            <Select placeholder="Selecciona un tipo" showSearch optionFilterProp="children">
+              {tiposUsuario.map((t) => (
+                <Option key={t.id} value={t.descripcion}>
+                  {t.descripcion}{t.descuento != null && t.descuento > 0 ? ` (${t.descuento}% desc.)` : ''}
+                </Option>
+              ))}
             </Select>
           </Form.Item>
 
