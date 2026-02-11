@@ -225,9 +225,9 @@ class PedidoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pedido
-        fields = ['id', 'estado', 'observacion', 'total', 'fecha', 'fk_usuario',
-                  'usuario_nombre', 'usuario_apellido', 'usuario_email', 'detalles', 'detalle_impresiones', 'historial_estados']
-        read_only_fields = ['id']
+        fields = ['id', 'estado', 'observacion', 'motivo_correccion', 'total', 'fecha', 'fk_usuario',
+                  'usuario_nombre', 'usuario_apellido', 'usuario_email', 'detalles', 'detalle_impresiones', 'historial_estados', 'updated_at']
+        read_only_fields = ['id', 'updated_at']
 
     def get_historial_estados(self, obj):
         from django.utils import timezone
@@ -235,12 +235,12 @@ class PedidoSerializer(serializers.ModelSerializer):
             historial = obj.historial_estados.all().order_by('fecha')
             if historial.exists():
                 lista = PedidoEstadoHistorialSerializer(historial, many=True).data
-                # Siempre incluir el estado inicial "En revisión" si no está en el historial
+                # Siempre incluir el estado inicial "Pendiente" si no está en el historial
                 primera_fecha = obj.created_at if obj.created_at else timezone.now()
-                if lista and lista[0].get('estado') != 'En revisión':
+                if lista and lista[0].get('estado') != 'Pendiente':
                     entrada_inicial = {
                         'id': None,
-                        'estado': 'En revisión',
+                        'estado': 'Pendiente',
                         'fecha': primera_fecha.isoformat() if hasattr(primera_fecha, 'isoformat') else str(primera_fecha)
                     }
                     lista = [entrada_inicial] + list(lista)

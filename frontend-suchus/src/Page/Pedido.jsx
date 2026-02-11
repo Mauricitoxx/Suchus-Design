@@ -159,8 +159,8 @@ const Pedido = () => {
   return (
     <div className="pedido-page-container">
       <Navbar showLinks={false} showAuth={true} showCart={false} showBackButton={true} />
-      <div className="pedido-container" style={{ maxWidth: '1000px', margin: '40px auto', padding: '0 20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 30, alignItems: 'center' }}>
+      <div className="pedido-container">
+        <div className="pedido-header">
           <Title level={2} style={{ margin: 0 }}><ShoppingCartOutlined /> Confirmar Pedido</Title>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/home')}>Volver al inicio</Button>
         </div>
@@ -168,7 +168,7 @@ const Pedido = () => {
         {productos.length === 0 ? (
           <Empty description="No tienes productos en el carrito" style={{ marginTop: 50 }} />
         ) : (
-          <div className="pedido-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '30px' }}>
+          <div className="pedido-layout">
             {/* TABLA DE PRODUCTOS */}
             <div className="pedido-items-list">
               <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>

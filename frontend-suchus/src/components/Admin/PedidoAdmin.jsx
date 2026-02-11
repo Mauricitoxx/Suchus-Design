@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Tag, Select, Button, message, Card, Typography, Space, Modal, Descriptions, Divider, Spin, Input, InputNumber, Tabs, Form, DatePicker } from 'antd';
 import { EyeOutlined, ClockCircleOutlined, ArrowLeftOutlined, SearchOutlined, PlusOutlined, DeleteOutlined, ShoppingOutlined, PrinterOutlined, FilePdfOutlined, FileImageOutlined, UserAddOutlined, CalendarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { pedidosAPI, usuariosAPI, productosAPI } from '../../services/api';
+import { pedidosAPI, usuariosAPI, productosAPI, usuariostipoAPI } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -15,6 +15,10 @@ const PedidoAdmin = () => {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
+  // Modal motivo corrección
+  const [modalMotivoVisible, setModalMotivoVisible] = useState(false);
+  const [motivoCorreccion, setMotivoCorreccion] = useState('');
+  const [pedidoMotivoId, setPedidoMotivoId] = useState(null);
   
   // Estado para la búsqueda
   const [searchText, setSearchText] = useState('');
@@ -40,6 +44,7 @@ const PedidoAdmin = () => {
   const [modalNuevoClienteVisible, setModalNuevoClienteVisible] = useState(false);
   const [formNuevoCliente] = Form.useForm();
   const [loadingNuevoCliente, setLoadingNuevoCliente] = useState(false);
+  const [tiposUsuario, setTiposUsuario] = useState([]);
 
   // Modal confirmar cancelar pedido
   const [confirmCancelarVisible, setConfirmCancelarVisible] = useState(false);
@@ -52,11 +57,12 @@ const PedidoAdmin = () => {
 
   const getColorEstado = (estado) => {
     const colores = {
-      'En revisión': 'orange',
+      'Pendiente': 'orange',
       'En proceso': 'blue',
       'Preparado': 'purple',
       'Retirado': 'green',
-      'Cancelado': 'volcano',
+      'Cancelado': 'default',
+      'Requiere Corrección': 'red',
     };
     return colores[estado] ?? 'default';
   };
@@ -81,10 +87,21 @@ const PedidoAdmin = () => {
     }
   };
 
+  const cargarTiposUsuario = async () => {
+    try {
+      const data = await usuariostipoAPI.getTipos();
+      const lista = Array.isArray(data) ? data : (data.results || []);
+      setTiposUsuario(lista);
+    } catch (error) {
+      console.error('Error al cargar tipos de usuario:', error);
+    }
+  };
+
   useEffect(() => {
     fetchPedidos();
     cargarClientes();
     cargarProductos();
+    cargarTiposUsuario();
   }, []);
 
   const cargarClientes = async () => {
@@ -405,11 +422,11 @@ const PedidoAdmin = () => {
     return nombre.includes(busqueda) || email.includes(busqueda);
   });
 
-  const handleCambiarEstado = async (id, nuevoEstado) => {
+  const handleCambiarEstado = async (id, nuevoEstado, motivo = null) => {
     try {
-      await pedidosAPI.cambiarEstado(id, nuevoEstado);
+      await pedidosAPI.cambiarEstado(id, nuevoEstado, motivo);
       message.success(`Pedido #${id} actualizado`);
-      fetchPedidos(); 
+      fetchPedidos();
     } catch (error) {
       message.error("No se pudo actualizar el estado");
     }
@@ -460,11 +477,12 @@ const PedidoAdmin = () => {
       key: 'estado',
       // Filtros rápidos en la columna
       filters: [
-        { text: 'En revisión', value: 'En revisión' },
+        { text: 'Pendiente', value: 'Pendiente' },
         { text: 'En proceso', value: 'En proceso' },
         { text: 'Preparado', value: 'Preparado' },
         { text: 'Retirado', value: 'Retirado' },
         { text: 'Cancelado', value: 'Cancelado' },
+        { text: 'Requiere Corrección', value: 'Requiere Corrección' },
       ],
       onFilter: (value, record) => record.estado === value,
       render: (estado) => <Tag color={getColorEstado(estado)}>{estado?.toUpperCase() || 'S/E'}</Tag>,
@@ -491,28 +509,50 @@ const PedidoAdmin = () => {
             <Select
               value={record.estado}
               size="small"
-              style={{ width: 140 }}
+              style={{ width: 170 }}
               onChange={(value) => {
                 if (value === 'Cancelado') {
                   setPedidoACancelar(record.id);
                   setConfirmCancelarVisible(true);
+                } else if (value === 'Requiere Corrección') {
+                  setPedidoMotivoId(record.id);
+                  setMotivoCorreccion('');
+                  setModalMotivoVisible(true);
                 } else {
                   handleCambiarEstado(record.id, value);
                 }
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <Option value="En revisión">En revisión</Option>
+              <Option value="Pendiente">Pendiente</Option>
               <Option value="En proceso">En proceso</Option>
               <Option value="Preparado">Preparado</Option>
               <Option value="Retirado">Retirado</Option>
               <Option value="Cancelado">Cancelado</Option>
+              <Option value="Requiere Corrección">Requiere Corrección</Option>
             </Select>
           </Space>
         </Space>
       ),
     },
   ];
+
+  const handleEnviarMotivo = async () => {
+    if (!motivoCorreccion.trim()) {
+      message.warning('Debes ingresar un motivo de corrección');
+      return;
+    }
+    await handleCambiarEstado(pedidoMotivoId, 'Requiere Corrección', motivoCorreccion);
+    setModalMotivoVisible(false);
+    setMotivoCorreccion('');
+    setPedidoMotivoId(null);
+  };
+
+  const handleCancelarMotivo = () => {
+    setModalMotivoVisible(false);
+    setMotivoCorreccion('');
+    setPedidoMotivoId(null);
+  };
 
   return (
     <div style={{ padding: '24px', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
@@ -610,6 +650,39 @@ const PedidoAdmin = () => {
         </div>
       </Spin>
 
+      {/* Modal motivo corrección */}
+      <Modal
+        title="Motivo de corrección requerido"
+        open={modalMotivoVisible}
+        onCancel={handleCancelarMotivo}
+        footer={[
+          <Button key="cancel" onClick={handleCancelarMotivo}>
+            Cancelar
+          </Button>,
+          <Button key="submit" type="primary" onClick={handleEnviarMotivo}>
+            Enviar motivo
+          </Button>
+        ]}
+        width="min(600px, 95vw)"
+        style={{ top: 16 }}
+        styles={{ body: { maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' } }}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ marginBottom: 12, color: '#595959' }}>
+            Por favor, ingresa el motivo por el cual el archivo requiere corrección. Este mensaje será visible para el cliente.
+          </p>
+          <Input.TextArea
+            value={motivoCorreccion}
+            onChange={e => setMotivoCorreccion(e.target.value)}
+            rows={5}
+            maxLength={500}
+            placeholder="Describe el motivo de la corrección..."
+            showCount
+            style={{ resize: 'none' }}
+          />
+        </div>
+      </Modal>
+
       {/* Modal confirmar cancelar pedido */}
       <Modal
         title="¿Cancelar pedido?"
@@ -693,8 +766,27 @@ const PedidoAdmin = () => {
             {(pedidoSeleccionado.detalle_impresiones && pedidoSeleccionado.detalle_impresiones.length > 0) && (
               <>
                 <Divider orientation="left">Impresiones</Divider>
+                {pedidoSeleccionado.estado === 'Requiere Corrección' && pedidoSeleccionado.motivo_correccion && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{
+                      background: '#fffbe6',
+                      border: '1px solid #ffe58f',
+                      borderRadius: 6,
+                      padding: 16,
+                      marginBottom: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12
+                    }}>
+                      <span style={{ fontSize: 22, color: '#faad14' }}>⚠️</span>
+                      <div>
+                        <b>Motivo de corrección:</b><br />
+                        {pedidoSeleccionado.motivo_correccion}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div style={{ overflowX: 'auto', marginBottom: 16 }}>
-                  {/* Reemplaza la tabla de impresiones dentro del modal con esta versión */}
                   <Table
                     dataSource={pedidoSeleccionado.detalle_impresiones}
                     pagination={false}
@@ -702,16 +794,16 @@ const PedidoAdmin = () => {
                     size="small"
                     scroll={{ x: 'max-content' }}
                     columns={[
-                      { 
-                        title: 'Archivo', 
+                      {
+                        title: 'Archivo',
                         key: 'archivo',
                         render: (_, imp) => (
                           <Space>
                             {imp.fk_impresion_data?.url ? (
-                              <Button 
-                                type="link" 
-                                icon={<FilePdfOutlined />} 
-                                href={imp.fk_impresion_data.url} 
+                              <Button
+                                type="link"
+                                icon={<FilePdfOutlined />}
+                                href={imp.fk_impresion_data.url}
                                 target="_blank"
                                 style={{ padding: 0 }}
                               >
@@ -731,6 +823,16 @@ const PedidoAdmin = () => {
                         dataIndex: 'subtotal',
                         width: 100,
                         render: (s) => <strong>${Number(s).toLocaleString()}</strong>
+                      },
+                      {
+                        title: 'Estado de archivo',
+                        key: 'estado_archivo',
+                        render: (imp) =>
+                          imp.estado === 'Requiere Corrección' ? (
+                            <Tag color="orange">Requiere Corrección</Tag>
+                          ) : (
+                            <Tag color="green">OK</Tag>
+                          ),
                       },
                     ]}
                   />
@@ -1206,11 +1308,12 @@ const PedidoAdmin = () => {
             initialValue="Cliente"
             rules={[{ required: true, message: 'El tipo es requerido' }]}
           >
-            <Select placeholder="Selecciona un tipo">
-              <Option value="Cliente">Cliente</Option>
-              <Option value="Admin">Admin</Option>
-              <Option value="Frecuente">Frecuente</Option>
-              <Option value="Alumno">Alumno</Option>
+            <Select placeholder="Selecciona un tipo" showSearch optionFilterProp="children">
+              {tiposUsuario.map((t) => (
+                <Option key={t.id} value={t.descripcion}>
+                  {t.descripcion}{t.descuento != null && t.descuento > 0 ? ` (${t.descuento}% desc.)` : ''}
+                </Option>
+              ))}
             </Select>
           </Form.Item>
 

@@ -136,12 +136,21 @@ const pedidosAPI = {
     const response = await api.delete(`pedidos/${id}/`);
     return response.data;
   },
-  cambiarEstado: async (id, estado) => {
-    const response = await api.patch(`pedidos/${id}/cambiar_estado/`, { estado });
+  cambiarEstado: async (id, estado, motivo_correccion = null) => {
+    const data = motivo_correccion ? { estado, motivo_correccion } : { estado };
+    const response = await api.patch(`pedidos/${id}/cambiar_estado/`, data);
     return response.data;
   },
   misPedidos: async (params = {}) => {
     const response = await api.get('pedidos/mis_pedidos/', { params });
+    return response.data;
+  },
+  corregirArchivos: async (id, formData) => {
+    const response = await api.post(`pedidos/${id}/corregir_archivos/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 };

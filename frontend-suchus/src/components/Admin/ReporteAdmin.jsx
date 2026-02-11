@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Table, Button, Modal, Form, DatePicker, Space, message, 
-  Card, Typography, Row, Col, Statistic, Divider, Input, Spin, Popconfirm 
+  Card, Typography, Row, Col, Statistic, Divider, Input, Spin, Popconfirm, Checkbox 
 } from 'antd';
 import { 
   PlusOutlined, ArrowLeftOutlined, DownloadOutlined, 
@@ -57,6 +57,7 @@ const ReporteAdmin = () => {
         titulo: values.titulo,
         fecha_inicio: values.rango[0].format('YYYY-MM-DD'),
         fecha_fin: values.rango[1].format('YYYY-MM-DD'),
+        incluir_descuentos: values.incluir_descuentos || false,
         fk_usuario_creador: 1 // TODO: Obtener del contexto de usuario logueado
       };
       await reportesAPI.create(payload);
@@ -211,6 +212,15 @@ const ReporteAdmin = () => {
           <Form.Item name="rango" label="Periodo" rules={[{ required: true }]}>
             <RangePicker style={{ width: '100%' }} />
           </Form.Item>
+          <Form.Item name="incluir_descuentos" valuePropName="checked">
+            <Checkbox>
+              <Text strong>Incluir detalle de descuentos aplicados</Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Analiza los descuentos otorgados por tipo de usuario
+              </Text>
+            </Checkbox>
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -265,6 +275,73 @@ const ReporteAdmin = () => {
                 { title: 'Monto Subtotal', dataIndex: 'monto_subtotal', render: (v) => `$${v.toLocaleString()}` }
               ]}
             />
+            
+            {reporteSeleccionado.datos_reporte.descuentos && (
+              <>
+                <Divider orientation="left" style={{ marginTop: 24 }}>
+                  Descuentos Aplicados
+                  <Text type="secondary" style={{ fontSize: 14, marginLeft: 16, fontWeight: 'normal' }}>
+                    Total otorgado: ${reporteSeleccionado.datos_reporte.descuentos.total_descuentos_otorgados.toLocaleString()}
+                  </Text>
+                </Divider>
+                <Table 
+                  dataSource={reporteSeleccionado.datos_reporte.descuentos.descuentos_por_tipo_usuario || []}
+                  pagination={false}
+                  size="small"
+                  summary={(data) => {
+                    const total = data.reduce((sum, record) => sum + record.total_descuentos, 0);
+                    const totalPedidos = data.reduce((sum, record) => sum + record.cantidad_pedidos, 0);
+                    return (
+                      <>
+                        <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
+                          <Table.Summary.Cell index={0}>TOTAL</Table.Summary.Cell>
+                          <Table.Summary.Cell index={1} align="center">-</Table.Summary.Cell>
+                          <Table.Summary.Cell index={2} align="right">${total.toLocaleString()}</Table.Summary.Cell>
+                          <Table.Summary.Cell index={3} align="center">{totalPedidos}</Table.Summary.Cell>
+                        </Table.Summary.Row>
+                      </>
+                    );
+                  }}
+                  columns={[
+                    { title: 'Tipo de Usuario', dataIndex: 'tipo_usuario', key: 'tipo' },
+                    { title: 'Descuento %', dataIndex: 'porcentaje', key: 'porcentaje', render: (v) => `${v}%`, align: 'center' },
+                    { title: 'Total Descuentos', dataIndex: 'total_descuentos', key: 'total', render: (v) => `$${v.toLocaleString()}`, align: 'right' },
+                    { title: 'Pedidos con Descuento', dataIndex: 'cantidad_pedidos', key: 'cantidad', align: 'center' }
+                  ]}
+                />
+              </>
+            )}
+            
+            {reporteSeleccionado.datos_reporte.logistica_y_clientes && (
+              <>
+                <Divider orientation="left" style={{ marginTop: 24 }}>Top Clientes</Divider>
+                <Table 
+                  dataSource={reporteSeleccionado.datos_reporte.logistica_y_clientes.mejores_clientes || []}
+                  pagination={false}
+                  size="small"
+                  columns={[
+                    { 
+                      title: 'Cliente', 
+                      key: 'nombre',
+                      render: (_, record) => `${record.fk_usuario__nombre} ${record.fk_usuario__apellido}`
+                    },
+                    { title: 'Compras', dataIndex: 'compras_realizadas', key: 'compras', align: 'center' },
+                    { title: 'Total Gastado', dataIndex: 'total_gastado', key: 'gastado', render: (v) => `$${v.toLocaleString()}`, align: 'right' }
+                  ]}
+                />
+                
+                <Divider orientation="left" style={{ marginTop: 24 }}>Días con Más Ventas</Divider>
+                <Table 
+                  dataSource={reporteSeleccionado.datos_reporte.logistica_y_clientes.dias_con_mas_ventas || []}
+                  pagination={false}
+                  size="small"
+                  columns={[
+                    { title: 'Fecha', dataIndex: 'fecha', key: 'fecha', render: (v) => dayjs(v).format('DD/MM/YYYY') },
+                    { title: 'Cantidad de Pedidos', dataIndex: 'cantidad', key: 'cantidad', align: 'center' }
+                  ]}
+                />
+              </>
+            )}
           </div>
         ) : <Text>Sin datos procesados.</Text>}
       </Modal>

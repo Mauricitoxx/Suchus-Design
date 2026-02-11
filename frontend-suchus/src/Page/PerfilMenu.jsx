@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Input, List, Modal, message, Spin } from "antd";
+import { Card, Button, Input, List, Modal, message, Spin, Badge, Space, Alert } from "antd";
+import { BellOutlined, ClockCircleOutlined, MailOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import authService from "../services/auth";
 import { pedidosAPI, usuariosAPI } from "../services/api";
 import Navbar from "./Navbar";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/es";
+
+dayjs.extend(relativeTime);
+dayjs.locale("es");
 
 const PerfilMenu = () => {
   const navigate = useNavigate();
@@ -174,26 +181,96 @@ const PerfilMenu = () => {
           </div>
         </Modal>
 
-        <Card title="Historial de pedidos" bordered style={{ marginTop: 24 }}>
-          <Spin spinning={loadingPedidos}>
-            {pedidos.length > 0 ? (
-              <List
-                dataSource={pedidos}
-                renderItem={item => (
-                  <List.Item>
-                    <List.Item.Meta
-                      title={`Pedido #${item.id}`}
-                      description={`Fecha: ${new Date(item.created_at || item.fecha_pedido).toLocaleDateString('es-AR')} | Estado: ${item.estado}`}
-                    />
-                  </List.Item>
+        {/* Panel de Notificaciones */}
+        <Card 
+          bordered 
+          style={{ marginTop: 24 }}
+          title={
+            <Space>
+              <BellOutlined style={{ fontSize: 18 }} />
+              <span>Notificaciones de Pedidos</span>
+            </Space>
+          }
+        >
+          {loadingPedidos ? (
+            <div style={{ textAlign: 'center', padding: 20 }}>
+              <Spin />
+            </div>
+          ) : (() => {
+            const ahora = dayjs();
+            const pedidosRecientes = pedidos.filter(p => {
+              const ultimaActualizacion = dayjs(p.updated_at);
+              return ahora.diff(ultimaActualizacion, 'hour') <= 48;
+            });
+
+            if (pedidosRecientes.length === 0) {
+              return (
+                <div style={{ textAlign: 'center', padding: 20, color: '#8c8c8c' }}>
+                  <ClockCircleOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+                  <p style={{ margin: 0 }}>No tenés actualizaciones recientes en tus pedidos</p>
+                </div>
+              );
+            }
+
+            return (
+              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Alert
+                  icon={<MailOutlined />}
+                  message={
+                    <span>
+                      <strong>{pedidosRecientes.length}</strong> {pedidosRecientes.length === 1 ? 'pedido actualizado' : 'pedidos actualizados'}
+                    </span>
+                  }
+                  description="Se enviaron notificaciones por email con los detalles de cada cambio"
+                  type="info"
+                  showIcon
+                />
+                
+                <List
+                  size="small"
+                  dataSource={pedidosRecientes.slice(0, 5)}
+                  renderItem={pedido => {
+                    const tiempo = dayjs(pedido.updated_at).fromNow();
+                    return (
+                      <List.Item
+                        style={{ 
+                          padding: '12px 0',
+                          cursor: 'pointer',
+                          borderRadius: 4,
+                        }}
+                        onClick={() => navigate('/mis-pedidos')}
+                      >
+                        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                          <Space>
+                            <Badge status="processing" />
+                            <span><strong>Pedido #{pedido.id}</strong></span>
+                            <span style={{ color: '#722ed1' }}>• {pedido.estado}</span>
+                          </Space>
+                          <span style={{ color: '#8c8c8c', fontSize: 12 }}>
+                            {tiempo}
+                          </span>
+                        </Space>
+                      </List.Item>
+                    );
+                  }}
+                />
+                
+                {pedidosRecientes.length > 5 && (
+                  <div style={{ textAlign: 'center', paddingTop: 8 }}>
+                    <Button type="link" onClick={() => navigate('/mis-pedidos')}>
+                      Ver todos los pedidos actualizados ({pedidosRecientes.length})
+                    </Button>
+                  </div>
                 )}
-              />
-            ) : (
-              <p style={{ textAlign: 'center', color: '#999', padding: '20px 0' }}>
-                No hay pedidos en tu historial
-              </p>
-            )}
-          </Spin>
+              </Space>
+            );
+          })()}
+        </Card>
+
+        <Card bordered style={{ marginTop: 24, textAlign: 'center' }}>
+          <Button type="primary" size="large" onClick={() => navigate('/mis-pedidos')}>
+            Ver historial de pedidos
+          </Button>
         </Card>
       </div>
     </div>
