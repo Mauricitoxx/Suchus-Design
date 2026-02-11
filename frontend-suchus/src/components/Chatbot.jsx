@@ -41,7 +41,7 @@ const Chatbot = () => {
     setLoading(true);
 
     // Enviar al webhook externo (id, mensaje, nombre)
-    const webhookUrl = 'https://valenxity.app.n8n.cloud/webhook/chat';
+    const webhookUrl = 'https://primary-production-6510e.up.railway.app/webhook/chat';
     const webhookPayload = { id, message: messageText, name };
 
     // Mantener formato antiguo para la petición interna (si existe)
