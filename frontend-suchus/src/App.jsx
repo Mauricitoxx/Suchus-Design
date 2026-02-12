@@ -15,7 +15,17 @@ import PedidoAdmin from "./components/Admin/PedidoAdmin";
 import DescuentosAdmin from './components/Admin/DescuentosAdmin';
 import ReporteAdmin from './components/Admin/ReporteAdmin';
 import MisPedidos from "./Page/MisPedidos";
-// 1. Componente para proteger rutas de Admin
+
+// Componente para proteger rutas que requieren autenticación
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = authService.isAuthenticated();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
+// Componente para proteger rutas de Admin
 const AdminRoute = ({ children }) => {
   const user = authService.getCurrentUser();
   // Verificamos el campo "tipo" que vimos en consola
@@ -30,14 +40,24 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/mis-pedidos" element={<MisPedidos />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/pedidos" element={<Pedido />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/perfil" element={<Perfil />} />
         
-        {/* 2. Protegemos las rutas de administración */}
+        {/* Rutas protegidas que requieren autenticación */}
+        <Route path="/mis-pedidos" element={
+          <ProtectedRoute><MisPedidos /></ProtectedRoute>
+        } />
+        <Route path="/pedidos" element={
+          <ProtectedRoute><Pedido /></ProtectedRoute>
+        } />
+        <Route path="/home" element={
+          <ProtectedRoute><Home /></ProtectedRoute>
+        } />
+        <Route path="/perfil" element={
+          <ProtectedRoute><Perfil /></ProtectedRoute>
+        } />
+        
+        {/* Rutas de administración (requieren ser Admin) */}
         <Route path="/admin" element={
           <AdminRoute> <Admin /> </AdminRoute>
         } />

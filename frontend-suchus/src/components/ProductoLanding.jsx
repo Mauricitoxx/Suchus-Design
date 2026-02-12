@@ -82,7 +82,7 @@ const ProductoLanding = () => {
   }
 
   return (
-    <div style={{ padding: '3rem 2rem', backgroundColor: '#f9f9f9' }}>
+    <div id="products" style={{ padding: '3rem 2rem', backgroundColor: '#f9f9f9', scrollMarginTop: '80px' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '1rem', color: '#333' }}>
           Nuestros Productos

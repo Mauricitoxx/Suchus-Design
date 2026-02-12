@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from 'antd';
 import { PrinterOutlined, ScanOutlined, FileProtectOutlined, ShoppingCartOutlined, FileAddOutlined, UserAddOutlined, MailOutlined, WhatsAppOutlined, PhoneOutlined, RobotOutlined } from '@ant-design/icons';
@@ -14,12 +14,22 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const isAuthenticated = authService.isAuthenticated();
 
+  // Forzar scroll al top al cargar/recargar la página
+  useEffect(() => {
+    // Desactivar la restauración automática del scroll del navegador
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    // Forzar scroll al top de forma inmediata
+    window.scrollTo(0, 0);
+  }, []);
+
   const handlePedidoClick = (e) => {
     e.preventDefault();
     if (isAuthenticated) {
       navigate('/home');
     } else {
-      document.querySelector('#orders')?.scrollIntoView({ behavior: 'smooth' });
+      document.querySelector('#orders')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -87,7 +97,7 @@ const LandingPage = () => {
     <br /> {/* Salto de línea opcional para que se vea mejor */}
     Archivos, impresiones, productos y más, todo en un solo lugar.
   </p>
-  <a href="#orders" className="btn-primary" onClick={handlePedidoClick}>Realizar Pedido</a>
+  <a href="javascript:void(0)" className="btn-primary" onClick={handlePedidoClick}>Realizar Pedido</a>
 </div>
         {/* Ya no necesitamos el div "hero-image" antiguo aquí */}
 
@@ -96,7 +106,7 @@ const LandingPage = () => {
       {/* --- El resto de secciones vuelven a tener su fondo normal --- */}
 
       {/* Services Section */}
-      <section id="services" style={{ padding: '60px 20px', backgroundColor: '#f9f9f9' }}>
+      <section id="services" style={{ padding: '60px 20px', backgroundColor: '#f9f9f9', scrollMarginTop: '80px' }}>
         <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '10px', color: '#333' }}>
           Nuestros Servicios
         </h2>
@@ -178,7 +188,7 @@ const LandingPage = () => {
       <ProductoLanding />
 
       {/* Orders Section */}
-      <section id="orders" style={{ padding: '60px 20px', backgroundColor: '#f9f9f9' }}>
+      <section id="orders" style={{ padding: '60px 20px', backgroundColor: '#f9f9f9', scrollMarginTop: '80px' }}>
         <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '10px', color: '#333' }}>
           Pasos para realizar un pedido
         </h2>
@@ -278,7 +288,7 @@ const LandingPage = () => {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" style={{ padding: '60px 20px', backgroundColor: '#f9f9f9' }}>
+      <section id="contact" style={{ padding: '60px 20px', backgroundColor: '#f9f9f9', scrollMarginTop: '80px' }}>
         <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '10px', color: '#333' }}>
           Contacto
         </h2>
