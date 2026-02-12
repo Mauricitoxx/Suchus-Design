@@ -7,10 +7,10 @@ function getCookie(name) {
   return match ? decodeURIComponent(match[2]) : null;
 }
 
-// Intenta obtener nombre/id probando varias claves comunes
+// Intenta obtener nombre/id probando varias claves (incluye prefijo user_)
 function getUserFromCookies() {
-  const name = getCookie('nombre') || getCookie('name') || getCookie('username') || 'Invitado';
-  const id = getCookie('id') || getCookie('userId') || getCookie('dni') || '0';
+  const name = getCookie('user_nombre') || getCookie('user_name') || getCookie('user_username') || getCookie('nombre') || getCookie('name') || getCookie('username') || 'Invitado';
+  const id = getCookie('user_id') || getCookie('userId') || getCookie('id') || getCookie('user_id') || getCookie('dni') || '0';
   return { name, id };
 }
 
@@ -44,8 +44,8 @@ const Chatbot = () => {
     const webhookUrl = 'https://primary-production-6510e.up.railway.app/webhook/chat';
     const webhookPayload = { id, message: messageText, name };
 
-    // Mantener formato antiguo para la petición interna (si existe)
-    const internalPayload = [name, id, messageText];
+    // Payload para el endpoint interno: objeto con campos claros
+    const internalPayload = { id, name, message: messageText };
 
     console.log('Chatbot webhook payload:', webhookPayload);
 
