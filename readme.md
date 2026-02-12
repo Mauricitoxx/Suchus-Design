@@ -43,10 +43,7 @@
 ## Acceso al Sistema
 
 ### URL de Acceso:
-Ingrese a la aplicación mediante la URL proporcionada por el administrador o acceda localmente a:
-```
-http://localhost:5173/
-```
+Ingrese a la aplicación mediante la URL proporcionada por el administrador.
 
 Al acceder por primera vez, visualizará la **Página Principal (Landing Page)** con información sobre los servicios disponibles.
 
@@ -58,7 +55,7 @@ Al acceder por primera vez, visualizará la **Página Principal (Landing Page)**
 
 1. **Desde la Página Principal**, haga clic en el botón **"Realizar Pedido"** o navegue al menú superior y seleccione **"Hola, Juan Cruz"** (si no está logueado aparecerá un botón de Login).
 
-2. En la página de inicio de sesión, haga clic en **"Registrarse"** o **"¿No tenés cuenta? Registrate"**.
+2. En la página de inicio de sesión, haga clic en **"Registrarse"** o **"Crear cuenta nueva**.
 
 3. Complete el formulario de registro con:
    - **Nombre completo**
@@ -66,16 +63,13 @@ Al acceder por primera vez, visualizará la **Página Principal (Landing Page)**
    - **Contraseña** (mínimo 8 caracteres)
    - **Confirmar contraseña**
 
-4. Acepte los **Términos y Condiciones**.
+4. Haga clic en **"Registrarse"**.
 
-5. Haga clic en **"Registrarse"**.
-
-6. Si el registro es exitoso, será redirigido automáticamente a la página de inicio de sesión.
+5. Si el registro es exitoso, será redirigido automáticamente a la página de inicio de sesión.
 
 ### Consideraciones:
 - El email debe ser único (no puede estar registrado previamente)
 - La contraseña debe ser segura (se recomienda incluir letras, números y símbolos)
-- Recibirá un email de confirmación en su casilla
 
 ---
 
@@ -228,7 +222,6 @@ Una vez autenticado, puede realizar dos tipos de pedidos:
 ### Ver Mis Pedidos
 
 1. **Acceder a Mis Pedidos**:
-   - Desde el menú superior, seleccione su nombre
    - Haga clic en **"Mis Pedidos"** o navegue a `/mis-pedidos`
 
 2. **Visualizar Lista de Pedidos**:
@@ -291,15 +284,6 @@ En su perfil puede visualizar:
 - **Email**
 - **Tipo de usuario** (Cliente o Admin)
 - **Descuento asignado** (si aplica)
-
-### Editar Información
-
-Para modificar su información:
-1. Haga clic en **"Editar Perfil"**
-2. Modifique los campos que desee:
-   - Nombre
-   - Email (debe ser único)
-3. Haga clic en **"Guardar Cambios"**
 
 ### Cambiar Contraseña
 
@@ -384,65 +368,6 @@ Si es administrador:
 
 ---
 
-## Preguntas Frecuentes
-
-### ¿Cómo puedo recuperar mi contraseña?
-En la página de login, haga clic en "¿Olvidaste tu contraseña?" e ingrese su email. Recibirá instrucciones para restablecerla.
-
-### ¿Qué formatos de archivo acepta el sistema para impresión?
-Actualmente el sistema acepta archivos **PDF**. Se recomienda convertir documentos de Word, Excel o PowerPoint a PDF antes de subirlos.
-
-### ¿Cuál es el tamaño máximo de archivo que puedo subir?
-El tamaño máximo permitido depende de la configuración del servidor. Como referencia general, se aceptan archivos de hasta 10MB.
-
-### ¿Cuánto tiempo tarda en procesarse un pedido?
-Los tiempos de procesamiento varían según la complejidad y volumen del pedido:
-- Impresiones simples: 1-2 horas
-- Pedidos grandes o encuadernados: 24-48 horas
-- Recibirá notificaciones por email cuando su pedido esté listo
-
-### ¿Puedo cancelar un pedido?
-Puede solicitar la cancelación contactando al administrador mediante:
-- Chatbot en la página principal
-- Email: contacto@suchuscopy.com
-- WhatsApp: +54 9 221 123-4567
-
-### ¿Puedo modificar un pedido después de confirmarlo?
-Si necesita modificar un pedido, contacte inmediatamente al administrador. Si el pedido aún no ha sido procesado, se podrá realizar el cambio.
-
-### ¿Cómo se aplica mi descuento?
-Si el administrador le asignó un descuento:
-- Se aplicará automáticamente al confirmar el pedido
-- Verá el descuento reflejado en el total antes de confirmar
-- Aparece en los detalles del pedido
-
-### ¿Dónde retiro mi pedido?
-Los pedidos se retiran en la sucursal:
-- Dirección: [Dirección de la sucursal]
-- Horarios: [Horarios de atención]
-- Al retirar, presente su número de pedido
-
-### ¿Qué métodos de pago aceptan?
-- Efectivo
-- Tarjeta de débito
-- Tarjeta de crédito
-El pago se realiza al momento de retirar el pedido en la sucursal.
-
-### No recibo emails del sistema, ¿qué hago?
-Verifique:
-1. La carpeta de **Spam** o **Correo no deseado**
-2. Que su email esté correctamente escrito en el perfil
-3. Contacte al administrador si el problema persiste
-
-### ¿El sistema funciona en dispositivos móviles?
-Sí, **Suchus Copy & Design** está optimizado para funcionar en:
-- Computadoras de escritorio
-- Tablets
-- Smartphones
-Puede realizar pedidos desde cualquier dispositivo con navegador web.
-
----
-
 ## Contacto y Soporte
 
 ### Canales de Atención
@@ -496,8 +421,6 @@ El sistema puede recibir actualizaciones periódicas para:
 - Agregar nuevas funcionalidades
 - Mejorar la seguridad
 - Optimizar el rendimiento
-
-Las actualizaciones importantes serán notificadas por email.
 
 ---
 
