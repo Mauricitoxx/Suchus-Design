@@ -325,11 +325,13 @@ const LandingPage = () => {
 
           <Card
             hoverable
+            onClick={() => window.location.href = 'mailto:contacto@suchuscopy.com'}
             style={{ 
               width: 260,
               borderRadius: '12px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              textAlign: 'center'
+              textAlign: 'center',
+              cursor: 'pointer'
             }}
             bodyStyle={{ padding: '32px' }}
           >
@@ -344,11 +346,13 @@ const LandingPage = () => {
 
           <Card
             hoverable
+            onClick={() => window.open('https://wa.me/5492211234567', '_blank')}
             style={{ 
               width: 260,
               borderRadius: '12px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              textAlign: 'center'
+              textAlign: 'center',
+              cursor: 'pointer'
             }}
             bodyStyle={{ padding: '32px' }}
           >
@@ -363,11 +367,13 @@ const LandingPage = () => {
 
           <Card
             hoverable
+            onClick={() => window.location.href = 'tel:2211234567'}
             style={{ 
               width: 260,
               borderRadius: '12px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              textAlign: 'center'
+              textAlign: 'center',
+              cursor: 'pointer'
             }}
             bodyStyle={{ padding: '32px' }}
           >
