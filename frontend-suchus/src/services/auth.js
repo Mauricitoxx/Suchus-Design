@@ -44,18 +44,30 @@ const authService = {
     try {
       const token = Cookies.get('access_token');
       if (token) {
+        // Notificamos al backend para blacklistear el token si es necesario
         await axios.post(`${API_URL}logout/`, {}, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
       }
     } catch (error) {
       console.error('Error al hacer logout:', error);
     } finally {
-      Cookies.remove('access_token');
-      Cookies.remove('refresh_token');
-      Cookies.remove('user');
+      // 1. Borrado forzado especificando el path
+      const cookieOptions = { path: '/' }; 
+      Cookies.remove('access_token', cookieOptions);
+      Cookies.remove('refresh_token', cookieOptions);
+      Cookies.remove('user', cookieOptions);
+
+      // 2. Limpieza de seguridad adicional para cookies persistentes
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+
+      // 3. HARD REDIRECT: Esto mata el error "Broken pipe" y detiene las peticiones automáticas
+      // En lugar de navegar con el router, reiniciamos el estado de la app
+      window.location.href = '/login';
     }
   },
 

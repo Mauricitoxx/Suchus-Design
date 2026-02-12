@@ -6,7 +6,7 @@ Versión Final Blindada para Koyeb + Neon - CORREGIDA
 from pathlib import Path
 import os
 from datetime import timedelta
-
+from django.conf.urls.static import static
 # 1. DEFINICIÓN DE BASE_DIR (Mover arriba para usarlo en load_dotenv)
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic', 
     'django.contrib.staticfiles',
     'app', # Tu aplicación de fotocopiadora
     'rest_framework',
@@ -46,9 +47,17 @@ INSTALLED_APPS = [
     'corsheaders',
     'cloudinary',
     'cloudinary_storage',
-    'whitenoise.runserver_nostatic', 
+    
 ]
-
+Q_CLUSTER = {
+    'name': 'DjangORM',
+    'workers': 2,        # 2 procesos son suficientes para reportes diarios
+    'timeout': 90,
+    'retry': 120,
+    'queue_limit': 50,
+    'bulk': 10,
+    'orm': 'default',    # Almacena las tareas en tu base de datos actual
+}
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware', 
@@ -115,17 +124,18 @@ CLOUDINARY_STORAGE = {
     'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
     'API_SECRET': os.getenv('CLOUDINARY_API_SECRET')
 }
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.RawMediaCloudinaryStorage'
 
 ROOT_URLCONF = 'backendSuchus.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
+        'DIRS': [], # Puedes dejarlo vacío si usas carpetas dentro de las apps
+        'APP_DIRS': True, # <--- ESTO DEBE ESTAR EN TRUE
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -141,7 +151,7 @@ WSGI_APPLICATION = 'backendSuchus.wsgi.application'
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 if DATABASE_URL:
-    print(f"✅ Intentando conectar a Neon: {DATABASE_URL[:30]}...")
+    print(f"[OK] Conectando a Neon: {DATABASE_URL[:30]}...")
     
     # Si dj_database_url funciona, lo usamos (es lo ideal)
     if dj_database_url:
@@ -154,7 +164,7 @@ if DATABASE_URL:
         }
     else:
         # PLAN B: Configuración manual si dj_database_url falla
-        print("⚠️ dj_database_url no disponible, usando configuración manual.")
+        print("[AVISO] dj_database_url no disponible, usando config manual.")
         import urllib.parse as urlparse
         url = urlparse.urlparse(DATABASE_URL)
         DATABASES = {
@@ -171,7 +181,7 @@ if DATABASE_URL:
     # Esto es vital para Neon
     DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
 else:
-    print("❌ No hay DATABASE_URL, usando SQLite.")
+    print("[OK] No hay DATABASE_URL, usando SQLite.")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -204,3 +214,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # --- MERCADO PAGO ---
 # Prioriza el token del .env si existe, sino usa el fallback
 MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "APP_USR-5006527019840999-020415-bd90aef781be9ac6dbb5908fdf64bbf6-3182278274")
+
+
+# settings.py
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'Valenxity@gmail.com'
+EMAIL_HOST_PASSWORD = 'tomt dlsd gwna kbzl' # No es tu clave normal, es una clave de app de Google

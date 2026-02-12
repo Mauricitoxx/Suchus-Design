@@ -2,6 +2,8 @@ from django.shortcuts import render
 from rest_framework import generics, status, viewsets, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django.db import transaction
+import json
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -10,14 +12,22 @@ from django.contrib.auth.hashers import check_password, make_password
 from django.utils import timezone
 from django.db.models import Q
 from datetime import timedelta
+import traceback
+from cloudinary_storage.storage import RawMediaCloudinaryStorage
+import io
+from django.core.files.base import ContentFile
 import boto3
 import uuid
 import os
-from .models import Usuario, Pedido, Impresion, Producto, UsuarioTipo, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial
+import pandas as pd
+from django.db import models
+from django.db.models import Sum, Count, F
+from .models import Usuario, Pedido, Impresion, Producto, UsuarioTipo, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial,Reporte
 from .serializers import (UsuarioRegisterSerializer, UsuarioLoginSerializer, PedidoSerializer, 
                           ImpresionSerializer, ProductoSerializer, UsuarioSerializer,
-                          UsuarioCreateSerializer, UsuarioUpdateSerializer)
+                          UsuarioCreateSerializer, UsuarioUpdateSerializer, ReporteSerializer)
 from .serializers import UsuarioTipoSerializer
+from .notifications import enviar_notificacion_cambio_estado, enviar_notificacion_correccion_requerida
 # Create your views here.
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -112,17 +122,43 @@ class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all()
     serializer_class = PedidoSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+
+    def list(self, request, *args, **kwargs):
+        try:
+            return super().list(request, *args, **kwargs)
+        except Exception as e:
+            return Response(
+                {'error': str(e), 'traceback': traceback.format_exc()},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     def get_queryset(self):
-        queryset = Pedido.objects.all()
-        usuario_id = self.request.query_params.get('usuario_id', None)
+        user = self.request.user
+        
+        # CORRECCIÓN: Acceder a la descripción del tipo de usuario correctamente
+        # Usamos .descripcion porque así está en tu modelo UsuarioTipo
+        is_admin = False
+        if hasattr(user, 'usuarioTipo') and user.usuarioTipo:
+            is_admin = user.usuarioTipo.descripcion == 'Admin'
+
+        # 1. Filtrado por Rol
+        if is_admin:
+            queryset = Pedido.objects.all()
+            # El admin sí puede filtrar por cualquier usuario
+            usuario_id = self.request.query_params.get('usuario_id', None)
+            if usuario_id:
+                queryset = queryset.filter(fk_usuario_id=usuario_id)
+        else:
+            # El cliente común SOLO ve sus pedidos
+            queryset = Pedido.objects.filter(fk_usuario=user)
+
+        # 2. Filtros adicionales de búsqueda
         estado = self.request.query_params.get('estado', None)
         fecha_desde = self.request.query_params.get('fecha_desde', None)
         fecha_hasta = self.request.query_params.get('fecha_hasta', None)
 
-        if usuario_id is not None:
-            queryset = queryset.filter(fk_usuario_id=usuario_id)
-        if estado is not None:
+        if estado:
             queryset = queryset.filter(estado=estado)
         if fecha_desde:
             queryset = queryset.filter(fecha__gte=fecha_desde)
@@ -130,16 +166,78 @@ class PedidoViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(fecha__lte=fecha_hasta)
 
         return queryset.order_by('-id')
+
+    # ESTO ES LO QUE TE FALTA PARA QUITAR EL 404
+    @action(detail=False, methods=['get'])
+    def mis_pedidos(self, request):
+        """
+        Endpoint: GET /api/pedidos/mis_pedidos/
+        """
+        pedidos = Pedido.objects.filter(fk_usuario=request.user).order_by('-id')
+        
+        # Manejo de paginación (por si usas en el futuro)
+        page = self.paginate_queryset(pedidos)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(pedidos, many=True)
+        return Response(serializer.data)
     
     @action(detail=True, methods=['patch'])
     def cambiar_estado(self, request, pk=None):
         pedido = self.get_object()
         nuevo_estado = request.data.get('estado')
+        motivo_correccion = request.data.get('motivo_correccion', None)
+
+        print(f"\n{'='*60}")
+        print(f"🔄 CAMBIO DE ESTADO DE PEDIDO")
+        print(f"{'='*60}")
+        print(f"Pedido ID: {pedido.id}")
+        print(f"Estado actual: {pedido.estado}")
+        print(f"Nuevo estado: {nuevo_estado}")
+        print(f"Usuario: {pedido.fk_usuario.nombre} ({pedido.fk_usuario.email})")
+        print(f"{'='*60}\n")
 
         if nuevo_estado in dict(Pedido.ESTADO).keys():
             pedido.estado = nuevo_estado
+            # Si el estado es 'Requiere Corrección', guardar el motivo
+            if nuevo_estado == 'Requiere Corrección' and motivo_correccion:
+                pedido.motivo_correccion = motivo_correccion
+            elif nuevo_estado != 'Requiere Corrección':
+                pedido.motivo_correccion = None
             pedido.save()
             PedidoEstadoHistorial.objects.create(fk_pedido=pedido, estado=nuevo_estado)
+            
+            print(f"✅ Pedido #{pedido.id} actualizado a estado: {nuevo_estado}")
+            
+            # ===== SISTEMA DE NOTIFICACIONES =====
+            # Enviar email al cliente (aislado para que no afecte el cambio de estado si falla)
+            print(f"📧 Intentando enviar notificación por email...")
+            try:
+                if nuevo_estado == 'Requiere Corrección' and motivo_correccion:
+                    # Email especial para correcciones
+                    resultado = enviar_notificacion_correccion_requerida(pedido, motivo_correccion)
+                    if resultado:
+                        print(f"✅ Notificación de corrección enviada exitosamente")
+                    else:
+                        print(f"⚠️ No se pudo enviar notificación de corrección")
+                else:
+                    # Email general de cambio de estado
+                    resultado = enviar_notificacion_cambio_estado(pedido)
+                    if resultado:
+                        print(f"✅ Notificación enviada exitosamente")
+                    else:
+                        print(f"⚠️ No se pudo enviar notificación")
+            except Exception as e:
+                # Si falla el email, solo lo registramos pero NO interrumpimos el flujo
+                import traceback
+                print(f"❌ [ADVERTENCIA] Error al enviar notificación: {e}")
+                print(f"Traceback completo:\n{traceback.format_exc()}")
+            # ===== FIN NOTIFICACIONES =====
+            
+            print(f"\n{'='*60}\n")
+            
             serializer = self.get_serializer(pedido)
             return Response(serializer.data)
 
@@ -147,79 +245,238 @@ class PedidoViewSet(viewsets.ModelViewSet):
             {"error": "Estado inválido"},
             status=status.HTTP_400_BAD_REQUEST
         )
-    def create(self, request, *args, **kwargs):
-        # El usuario autenticado se obtiene del JWT en la cookie
-        user = request.user
-        datos = request.data
-        detalles_productos = datos.get('detalles', [])
-        detalles_impresiones = datos.get('impresiones', [])
-        observacion = datos.get('observacion', '')
 
-        # Si el usuario es Admin y se proporciona fk_usuario, usar ese usuario
-        # Si no, usar el usuario autenticado (comportamiento normal para clientes)
-        usuario_pedido_id = datos.get('fk_usuario')
-        if usuario_pedido_id and user.es_admin():
-            # Admin puede crear pedido para cualquier usuario
-            try:
-                usuario_pedido = Usuario.objects.get(id=usuario_pedido_id, activo=True)
-            except Usuario.DoesNotExist:
+    @action(detail=True, methods=['post'])
+    def corregir_archivos(self, request, pk=None):
+        """
+        Permite al cliente subir archivos corregidos para un pedido con estado "Requiere Corrección"
+        Recalcula el precio del pedido basado en formato, color y cantidad de copias
+        """
+        try:
+            pedido = self.get_object()
+            
+            # Verificar que el pedido pertenece al usuario
+            if pedido.fk_usuario != request.user:
                 return Response(
-                    {"error": "Usuario no encontrado o inactivo"},
+                    {"error": "No tienes permiso para modificar este pedido"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Verificar que el pedido requiere corrección
+            if pedido.estado != 'Requiere Corrección':
+                return Response(
+                    {"error": "Este pedido no requiere corrección"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-        else:
-            # Usuario normal crea pedido para sí mismo
-            usuario_pedido = user
-
-        # Crear el pedido
-        pedido = Pedido.objects.create(
-            fk_usuario=usuario_pedido,
-            total=0,
-            observacion=observacion
-        )
-        PedidoEstadoHistorial.objects.create(fk_pedido=pedido, estado=pedido.estado)
-
-        total = 0
-
-        # Agregar productos al pedido
-        for det in detalles_productos:
-            producto_id = det['fk_producto']
-            cantidad = det['cantidad']
-            subtotal = cantidad * det.get('precio_unitario', 0)
-            total += subtotal
-            PedidoProductoDetalle.objects.create(
-                fk_pedido=pedido,
-                fk_producto_id=producto_id,
-                cantidad=cantidad,
-                subtotal=subtotal
+            
+            import json
+            import uuid
+            from django.core.files.base import ContentFile
+            from cloudinary_storage.storage import RawMediaCloudinaryStorage
+            
+            # Obtener lista de impresiones a corregir con sus nuevos archivos y configuración
+            archivos_corregidos = json.loads(request.data.get('archivos_corregidos', '[]'))
+            
+            if not archivos_corregidos:
+                return Response(
+                    {"error": "Debes proporcionar al menos un archivo corregido"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            storage = RawMediaCloudinaryStorage()
+            
+            # Tabla de precios por hoja
+            precios = {
+                'A4': {'blanco y negro': 20, 'color': 40},
+                'A3': {'blanco y negro': 30, 'color': 60},
+            }
+            
+            # Actualizar cada impresión con el nuevo archivo y recalcular subtotal
+            for i, archivo_data in enumerate(archivos_corregidos):
+                impresion_id = archivo_data.get('impresion_id')
+                nuevo_formato = archivo_data.get('formato', 'A4')
+                nuevo_color = archivo_data.get('color', 'blanco y negro')
+                nuevas_copias = int(archivo_data.get('copias', 1))
+                archivo_nuevo = request.FILES.get(f'archivo_{i}')
+                
+                if not archivo_nuevo or not impresion_id:
+                    continue
+                
+                try:
+                    # Buscar la impresión dentro de este pedido
+                    detalle_impresion = PedidoImpresionDetalle.objects.get(
+                        fk_pedido=pedido,
+                        fk_impresion_id=impresion_id
+                    )
+                    impresion = detalle_impresion.fk_impresion
+                    
+                    # Subir nuevo archivo a Cloudinary
+                    extension = os.path.splitext(archivo_nuevo.name)[1]
+                    nombre_archivo_nube = f"impresiones/corregidos/{uuid.uuid4()}{extension}"
+                    path_almacenado = storage.save(nombre_archivo_nube, archivo_nuevo)
+                    url_cloudinary = storage.url(path_almacenado)
+                    
+                    # Actualizar la impresión con los nuevos datos
+                    impresion.archivo = archivo_nuevo
+                    impresion.url = url_cloudinary
+                    impresion.nombre_archivo = archivo_nuevo.name
+                    impresion.formato = nuevo_formato
+                    impresion.color = (nuevo_color == 'color')
+                    impresion.save()
+                    
+                    # Recalcular el subtotal del detalle
+                    precio_por_hoja = precios.get(nuevo_formato, {}).get(nuevo_color, 20)
+                    nuevo_subtotal = precio_por_hoja * nuevas_copias
+                    
+                    detalle_impresion.cantidadCopias = nuevas_copias
+                    detalle_impresion.subtotal = nuevo_subtotal
+                    detalle_impresion.save()
+                    
+                except PedidoImpresionDetalle.DoesNotExist:
+                    continue
+            
+            # Recalcular el total del pedido
+            total_productos = sum(
+                d.subtotal for d in pedido.pedidoproductodetalle_set.all()
             )
-
-        # Agregar impresiones al pedido
-        for imp in detalles_impresiones:
-            # Crear registro de impresión primero
-            impresion = Impresion.objects.create(
-                color=(imp['color'] == 'color'),
-                formato=imp['formato'],
-                url='',  # URL vacía para pedidos creados manualmente
-                nombre_archivo=imp['nombre_archivo'],
-                fk_usuario=usuario_pedido
+            total_impresiones = sum(
+                d.subtotal for d in pedido.pedidoimpresiondetalle_set.all()
+            )
+            total_bruto = total_productos + total_impresiones
+            
+            # Aplicar descuento del usuario
+            porcentaje_descuento = 0
+            if hasattr(request.user, 'usuarioTipo') and request.user.usuarioTipo:
+                porcentaje_descuento = request.user.usuarioTipo.descuento
+            
+            pedido.total = total_bruto * (1 - (porcentaje_descuento / 100))
+            
+            # Cambiar el estado del pedido a "Pendiente" y limpiar motivo de corrección
+            pedido.estado = "Pendiente"
+            pedido.motivo_correccion = None
+            pedido.save()
+            
+            # Registrar en el historial
+            PedidoEstadoHistorial.objects.create(
+                fk_pedido=pedido,
+                estado="Pendiente"
             )
             
-            subtotal = imp.get('precio_unitario', 0) * imp.get('copias', 1)
-            total += subtotal
+            # Enviar notificación al cliente informando que recibimos sus archivos corregidos
+            print(f"📧 Enviando notificación de archivos corregidos recibidos...")
+            try:
+                resultado = enviar_notificacion_cambio_estado(pedido)
+                if resultado:
+                    print(f"✅ Notificación enviada exitosamente")
+                else:
+                    print(f"⚠️ No se pudo enviar notificación")
+            except Exception as e:
+                print(f"❌ Error al enviar notificación: {e}")
             
-            PedidoImpresionDetalle.objects.create(
-                fk_pedido=pedido,
-                fk_impresion=impresion,
-                cantidadCopias=imp.get('copias', 1),
-                subtotal=subtotal
+            serializer = self.get_serializer(pedido)
+            return Response({
+                "message": "Archivos corregidos subidos exitosamente. El precio ha sido recalculado.",
+                "pedido": serializer.data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            import traceback
+            print(traceback.format_exc())
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-        pedido.total = total
-        pedido.save()
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        try:
+            user = request.user
+            import json
+            import uuid
+            from django.core.files.base import ContentFile
+            from cloudinary_storage.storage import RawMediaCloudinaryStorage
 
-        serializer = PedidoSerializer(pedido)
-        return Response(serializer.data)
+            # 1. Parseo de datos desde FormData
+            detalles_productos = json.loads(request.data.get('detalles', '[]'))
+            detalles_impresiones_metadata = json.loads(request.data.get('impresiones', '[]'))
+            observacion = request.data.get('observacion', '')
+
+            # 2. Crear el Pedido inicial
+            pedido = Pedido.objects.create(
+                fk_usuario=user, 
+                total=0, 
+                observacion=observacion,
+                estado="Pendiente"
+            )
+            total_bruto = 0
+
+            # 3. Procesar Productos de catálogo
+            for det in detalles_productos:
+                producto = Producto.objects.get(id=det['fk_producto'])
+                cantidad = int(det.get('cantidad', 1))
+                sub_p = float(producto.precioUnitario) * cantidad
+                total_bruto += sub_p
+                
+                PedidoProductoDetalle.objects.create(
+                    fk_pedido=pedido, 
+                    fk_producto=producto, 
+                    cantidad=cantidad, 
+                    subtotal=sub_p
+                )
+
+            # 4. Procesar Impresiones (Subida MANUAL a Cloudinary)
+            for i, imp_data in enumerate(detalles_impresiones_metadata):
+                archivo_real = request.FILES.get(f'archivo_impresion_{i}')
+                url_cloudinary = "temporal"
+                
+                if archivo_real:
+                    # Usamos el mismo storage que usas en los reportes
+                    storage = RawMediaCloudinaryStorage()
+                    
+                    # Generamos un nombre único para la carpeta 'impresiones' en Cloudinary
+                    extension = os.path.splitext(archivo_real.name)[1]
+                    nombre_archivo_nube = f"impresiones/{uuid.uuid4()}{extension}"
+                    
+                    # Guardamos el archivo directamente en Cloudinary
+                    path_almacenado = storage.save(nombre_archivo_nube, archivo_real)
+                    # Obtenemos la URL pública real
+                    url_cloudinary = storage.url(path_almacenado)
+
+                # Crear objeto Impresion con la URL de la nube
+                nueva_imp = Impresion.objects.create(
+                    nombre_archivo=imp_data.get('nombre_archivo', archivo_real.name if archivo_real else 'archivo.pdf'),
+                    formato=imp_data.get('formato', 'A4'),
+                    color=str(imp_data.get('color')).lower() == 'color',
+                    archivo=archivo_real,  # Se guarda el objeto archivo
+                    url=url_cloudinary,    # Guardamos el link de Cloudinary aquí
+                    fk_usuario=user
+                )
+
+                subtotal_imp = float(imp_data.get('subtotal', 0))
+                total_bruto += subtotal_imp
+
+                # Crear el Detalle vinculado (campo fk_impresion)
+                PedidoImpresionDetalle.objects.create(
+                    fk_pedido=pedido,
+                    fk_impresion=nueva_imp, 
+                    cantidadCopias=int(imp_data.get('copias', 1)),
+                    subtotal=subtotal_imp
+                )
+
+            # 5. Cálculo final con descuento
+            porcentaje_descuento = 0
+            if hasattr(user, 'usuarioTipo') and user.usuarioTipo:
+                porcentaje_descuento = user.usuarioTipo.descuento
+
+            pedido.total = total_bruto * (1 - (porcentaje_descuento / 100))
+            pedido.save()
+
+            return Response(self.get_serializer(pedido).data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            import traceback
+            print(traceback.format_exc())
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -848,3 +1105,158 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             })
         
         return Response({"tipo": "Sin Tipo", "descuento": 0})
+
+class ReporteViewSet(viewsets.ModelViewSet):
+    queryset = Reporte.objects.all().order_by('-created_at')
+    serializer_class = ReporteSerializer
+
+    def perform_create(self, serializer):
+        try:
+            print("--- INICIANDO CREACIÓN DE REPORTE ---")
+            
+            # 1. Identificar usuario
+            usuario_id = self.request.data.get('fk_usuario_creador')
+            print(f"Buscando usuario ID: {usuario_id}")
+            usuario = Usuario.objects.get(id=usuario_id)
+
+            # 2. Fechas
+            f_inicio = self.request.data.get('fecha_inicio')
+            f_fin = self.request.data.get('fecha_fin')
+            incluir_descuentos = self.request.data.get('incluir_descuentos', False)
+            print(f"Rango: {f_inicio} a {f_fin}")
+            print(f"Incluir descuentos: {incluir_descuentos}")
+
+            # 3. Cálculo
+            print("Calculando datos integrales...")
+            calculos = self.calcular_datos_integrales(f_inicio, f_fin, incluir_descuentos)
+            
+            # 4. Guardado
+            print("Guardando en BD...")
+            serializer.save(fk_usuario_creador=usuario, datos_reporte=calculos)
+            print("--- REPORTE CREADO CON ÉXITO ---")
+
+        except Usuario.DoesNotExist:
+            print("ERROR: El usuario que envió el ID no existe en la BD.")
+            raise serializers.ValidationError({"fk_usuario_creador": "Usuario no encontrado."})
+        except Exception as e:
+            print("!!! ERROR CRÍTICO EN PERFORM_CREATE !!!")
+            print(traceback.format_exc()) # Esto te dice la línea exacta del error
+            raise serializers.ValidationError({"error": str(e)})
+
+    def calcular_datos_integrales(self, inicio, fin, incluir_descuentos=False):
+        from django.db.models import Count, Sum, Avg
+        import traceback
+
+        try:
+            # Filtramos el universo de pedidos en ese rango
+            pedidos_qs = Pedido.objects.filter(fecha__range=[inicio, fin])
+            
+            if not pedidos_qs.exists():
+                return {"aviso": "Sin movimientos en las fechas seleccionadas"}
+
+            # --- 1. SECCIÓN ECONÓMICA ---
+            stats_globales = pedidos_qs.aggregate(
+                total_bruto=Sum('total'),
+                ticket_promedio=Avg('total')
+            )
+
+            caja_por_estado = list(pedidos_qs.values('estado').annotate(
+                cantidad_pedidos=Count('id'),
+                monto_subtotal=Sum('total')
+            ).order_by('-monto_subtotal'))
+
+            # Limpieza de Decimal a Float para JSON
+            for item in caja_por_estado:
+                item['monto_subtotal'] = float(item['monto_subtotal'] or 0)
+
+            # --- 2. SECCIÓN OPERATIVA ---
+            top_clientes = list(pedidos_qs.values(
+                'fk_usuario__nombre', 
+                'fk_usuario__apellido'
+            ).annotate(
+                compras_realizadas=Count('id'),
+                total_gastado=Sum('total')
+            ).order_by('-compras_realizadas')[:5])
+            
+            for cliente in top_clientes:
+                cliente['total_gastado'] = float(cliente['total_gastado'] or 0)
+
+            # CORRECCIÓN DEL ERROR: Convertir fechas a String
+            dias_mas_ventas = []
+            query_dias = pedidos_qs.values('fecha').annotate(
+                cantidad=Count('id')
+            ).order_by('-cantidad')[:3]
+
+            for item in query_dias:
+                dias_mas_ventas.append({
+                    "fecha": item['fecha'].strftime('%Y-%m-%d') if item['fecha'] else "Sin fecha",
+                    "cantidad": item['cantidad']
+                })
+
+            # --- 3. SECCIÓN DESCUENTOS (si está activada) ---
+            descuentos_info = None
+            if incluir_descuentos:
+                total_descuentos = 0
+                descuentos_por_tipo = {}
+                
+                for pedido in pedidos_qs.select_related('fk_usuario__usuarioTipo'):
+                    usuario = pedido.fk_usuario
+                    if usuario and hasattr(usuario, 'usuarioTipo') and usuario.usuarioTipo:
+                        porcentaje_desc = usuario.usuarioTipo.descuento
+                        tipo_nombre = usuario.usuarioTipo.descripcion
+                        
+                        if porcentaje_desc > 0:
+                            # Calcular monto sin descuento: total = monto_sin_desc * (1 - desc/100)
+                            # Entonces: monto_sin_desc = total / (1 - desc/100)
+                            monto_sin_descuento = pedido.total / (1 - (porcentaje_desc / 100))
+                            descuento_aplicado = monto_sin_descuento - pedido.total
+                            total_descuentos += descuento_aplicado
+                            
+                            # Acumular por tipo de usuario
+                            if tipo_nombre not in descuentos_por_tipo:
+                                descuentos_por_tipo[tipo_nombre] = {
+                                    'porcentaje': porcentaje_desc,
+                                    'total_descuentos': 0,
+                                    'cantidad_pedidos': 0
+                                }
+                            descuentos_por_tipo[tipo_nombre]['total_descuentos'] += descuento_aplicado
+                            descuentos_por_tipo[tipo_nombre]['cantidad_pedidos'] += 1
+                
+                # Convertir a lista para JSON
+                descuentos_por_tipo_lista = [
+                    {
+                        'tipo_usuario': tipo,
+                        'porcentaje': data['porcentaje'],
+                        'total_descuentos': round(float(data['total_descuentos']), 2),
+                        'cantidad_pedidos': data['cantidad_pedidos']
+                    }
+                    for tipo, data in descuentos_por_tipo.items()
+                ]
+                
+                descuentos_info = {
+                    'total_descuentos_otorgados': round(float(total_descuentos), 2),
+                    'descuentos_por_tipo_usuario': descuentos_por_tipo_lista
+                }
+
+            resultado = {
+                "resumen_general": {
+                    "monto_total_periodo": float(stats_globales['total_bruto'] or 0),
+                    "cantidad_total_pedidos": pedidos_qs.count(),
+                    "promedio_por_venta": round(float(stats_globales['ticket_promedio'] or 0), 2),
+                },
+                "finanzas_por_estado": caja_por_estado,
+                "logistica_y_clientes": {
+                    "mejores_clientes": top_clientes,
+                    "dias_con_mas_ventas": dias_mas_ventas
+                }
+            }
+            
+            # Agregar descuentos solo si fue solicitado
+            if descuentos_info:
+                resultado["descuentos"] = descuentos_info
+            
+            return resultado
+        except Exception as e:
+            print(f"Error en cálculos: {e}")
+            print(traceback.format_exc())
+            return {"error": str(e)}

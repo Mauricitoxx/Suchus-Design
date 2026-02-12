@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container { font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; }
+        .header { background-color: #722ed1; color: white; padding: 20px; text-align: center; }
+        .content { padding: 30px; color: #333; line-height: 1.6; }
+        .box { background-color: #f9f0ff; border-left: 4px solid #722ed1; padding: 15px; margin: 20px 0; }
+        .estado { display: inline-block; padding: 8px 16px; background-color: #722ed1; color: white; border-radius: 5px; font-weight: bold; }
+        .footer { text-align: center; font-size: 12px; color: #888; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="margin: 0;">📦 Actualización de tu Pedido</h2>
+        </div>
+        <div class="content">
+            <p>Hola {{ usuario_nombre }},</p>
+            <p>Tu pedido <strong>#{{ pedido_id }}</strong> ha sido actualizado:</p>
+            
+            <div class="box">
+                <p style="margin: 10px 0;"><strong>Nuevo Estado:</strong></p>
+                <p style="text-align: center; margin: 15px 0;">
+                    <span class="estado">{{ estado }}</span>
+                </p>
+                <p style="margin: 5px 0;"><strong>💵 Total:</strong> ${{ total }}</p>
+                <p style="margin: 5px 0;"><strong>📅 Fecha:</strong> {{ fecha }}</p>
+            </div>
+
+            <p>Podés revisar los detalles completos de tu pedido iniciando sesión en tu cuenta.</p>
+            
+            {% if estado == "Preparado" %}
+            <p style="background-color: #fff7e6; padding: 15px; border-radius: 5px; border-left: 4px solid #faad14;">
+                <strong>🎉 ¡Tu pedido está listo para retirar!</strong><br>
+                Acercate por nuestro local con este email.
+            </p>
+            {% endif %}
+        </div>
+        <div class="footer">
+            Este es un correo automático generado por Suchus Design.<br>
+            Por favor, no respondas a este mensaje.
+        </div>
+    </div>
+</body>
+</html>

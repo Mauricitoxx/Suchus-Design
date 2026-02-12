@@ -13,7 +13,8 @@ import Pedido from "./Page/Pedido";
 import authService from './services/auth';// Importamos tu authService
 import PedidoAdmin from "./components/Admin/PedidoAdmin";
 import DescuentosAdmin from './components/Admin/DescuentosAdmin';
-
+import ReporteAdmin from './components/Admin/ReporteAdmin';
+import MisPedidos from "./Page/MisPedidos";
 // 1. Componente para proteger rutas de Admin
 const AdminRoute = ({ children }) => {
   const user = authService.getCurrentUser();
@@ -29,6 +30,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/mis-pedidos" element={<MisPedidos />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/pedidos" element={<Pedido />} />
@@ -50,6 +52,8 @@ function App() {
         } />
         <Route path="/admin/descuentos" element={<AdminRoute> <DescuentosAdmin/> </AdminRoute>} />
         
+        <Route path="/admin/reportes" element={<AdminRoute> <ReporteAdmin/> </AdminRoute>} />
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>

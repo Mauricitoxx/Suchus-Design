@@ -33,14 +33,16 @@ class Usuario(models.Model):
 
 class Pedido(models.Model):
     ESTADO = [
-        ("En revisión", "en revisión"),
+        ("Pendiente", "pendiente"),
         ("En proceso", "en proceso"),
         ("Preparado", "preparado"),
         ("Retirado", "retirado"),
-        ("Cancelado", "cancelado")
+        ("Cancelado", "cancelado"),
+        ("Requiere Corrección", "requiere corrección")
     ]
-    estado = models.CharField(max_length=100, choices=ESTADO, default="En revisión")
+    estado = models.CharField(max_length=100, choices=ESTADO, default="Pendiente")
     observacion = models.TextField(null=True, blank=True)
+    motivo_correccion = models.TextField(null=True, blank=True)
     total = models.FloatField(null=False)
     fecha = models.DateField(auto_now_add=True)
     fk_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
@@ -91,6 +93,7 @@ class Impresion(models.Model):
         ("A5", "A5 (148 × 210 mm)"),
         ("A6", "A6 (105 × 148 mm)"),
     ]
+    archivo = models.FileField(upload_to='impresiones/', null=True, blank=True)
     color = models.BooleanField(null=False)
     formato = models.CharField(max_length=3, choices=FORMATO, default="A4")
     url = models.CharField(null=False, max_length=300)
@@ -148,3 +151,17 @@ class Pago(models.Model):
     def __str__(self):
         return f"Pago {self.id} - {self.estado}"
 
+from django.db import models
+
+class Reporte(models.Model):
+    titulo = models.CharField(max_length=200)
+    fecha_inicio = models.DateField()
+    fecha_fin = models.DateField()
+    fk_usuario_creador = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Aquí guardaremos TODA la ensalada de cálculos
+    datos_reporte = models.JSONField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.titulo} ({self.fecha_inicio} - {self.fecha_fin})"

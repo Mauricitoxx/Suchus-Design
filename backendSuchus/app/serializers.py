@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Usuario, UsuarioTipo, Pedido, Impresion, Producto, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial
+from .models import Usuario, UsuarioTipo, Pedido, Impresion, Producto, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial,Reporte
 
 
 
@@ -184,6 +184,21 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+class ImpresionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Impresion
+        # Agregamos 'url' a la lista de campos
+        # Puedes quitar 'archivo' y 'archivo_url' si ya no los necesitas en el JSON
+        fields = ['id', 'nombre_archivo', 'formato', 'color', 'url', 'archivo']
+# Asegúrate de que PedidoImpresionDetalleSerializer incluya la impresión serializada
+class PedidoImpresionDetalleSerializer(serializers.ModelSerializer):
+    # Usamos fk_impresion porque ese es el nombre real en tu modelo
+    fk_impresion_data = ImpresionSerializer(source='fk_impresion', read_only=True)
+    
+    class Meta:
+        model = PedidoImpresionDetalle
+        fields = ['id', 'cantidadCopias', 'subtotal', 'fk_impresion_data']
+
 class PedidoProductoDetalleSerializer(serializers.ModelSerializer):
     fk_producto_nombre = serializers.CharField(source='fk_producto.nombre', read_only=True)
     fk_producto_precio = serializers.FloatField(source='fk_producto.precioUnitario', read_only=True)
@@ -191,19 +206,6 @@ class PedidoProductoDetalleSerializer(serializers.ModelSerializer):
     class Meta:
         model = PedidoProductoDetalle
         fields = ['id', 'fk_producto', 'fk_producto_nombre', 'fk_producto_precio', 'cantidad', 'subtotal']
-
-
-class PedidoImpresionDetalleSerializer(serializers.ModelSerializer):
-    nombre_archivo = serializers.CharField(source='fk_impresion.nombre_archivo', read_only=True)
-    formato = serializers.CharField(source='fk_impresion.formato', read_only=True)
-    color = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = PedidoImpresionDetalle
-        fields = ['id', 'nombre_archivo', 'formato', 'color', 'cantidadCopias', 'subtotal']
-
-    def get_color(self, obj):
-        return 'Color' if obj.fk_impresion.color else 'Blanco y negro'
 
 
 class PedidoEstadoHistorialSerializer(serializers.ModelSerializer):
@@ -223,9 +225,9 @@ class PedidoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pedido
-        fields = ['id', 'estado', 'observacion', 'total', 'fecha', 'fk_usuario',
-                  'usuario_nombre', 'usuario_apellido', 'usuario_email', 'detalles', 'detalle_impresiones', 'historial_estados']
-        read_only_fields = ['id']
+        fields = ['id', 'estado', 'observacion', 'motivo_correccion', 'total', 'fecha', 'fk_usuario',
+                  'usuario_nombre', 'usuario_apellido', 'usuario_email', 'detalles', 'detalle_impresiones', 'historial_estados', 'updated_at']
+        read_only_fields = ['id', 'updated_at']
 
     def get_historial_estados(self, obj):
         from django.utils import timezone
@@ -233,12 +235,12 @@ class PedidoSerializer(serializers.ModelSerializer):
             historial = obj.historial_estados.all().order_by('fecha')
             if historial.exists():
                 lista = PedidoEstadoHistorialSerializer(historial, many=True).data
-                # Siempre incluir el estado inicial "En revisión" si no está en el historial
+                # Siempre incluir el estado inicial "Pendiente" si no está en el historial
                 primera_fecha = obj.created_at if obj.created_at else timezone.now()
-                if lista and lista[0].get('estado') != 'En revisión':
+                if lista and lista[0].get('estado') != 'Pendiente':
                     entrada_inicial = {
                         'id': None,
-                        'estado': 'En revisión',
+                        'estado': 'Pendiente',
                         'fecha': primera_fecha.isoformat() if hasattr(primera_fecha, 'isoformat') else str(primera_fecha)
                     }
                     lista = [entrada_inicial] + list(lista)
@@ -249,22 +251,7 @@ class PedidoSerializer(serializers.ModelSerializer):
         fecha = obj.created_at if obj.created_at else timezone.now()
         return [{'id': None, 'estado': obj.estado, 'fecha': fecha.isoformat() if hasattr(fecha, 'isoformat') else str(fecha)}]
 
-class ImpresionSerializer(serializers.ModelSerializer):
-    archivo = serializers.FileField(write_only=True, required=False)
-    usuario_nombre = serializers.CharField(source='fk_usuario.nombre', read_only=True)
-    dias_sin_uso = serializers.SerializerMethodField(read_only=True)
-    
-    class Meta:
-        model = Impresion
-        fields = ['id', 'color', 'formato', 'url', 'nombre_archivo', 'cloudflare_key',
-                  'created_at', 'updated_at', 'last_accessed', 'fk_usuario', 
-                  'usuario_nombre', 'archivo', 'dias_sin_uso']
-        read_only_fields = ['id', 'url', 'cloudflare_key', 'created_at', 'updated_at', 'last_accessed']
-    
-    def get_dias_sin_uso(self, obj):
-        from django.utils import timezone
-        delta = timezone.now() - obj.last_accessed
-        return delta.days
+
 
 class ProductoSerializer(serializers.ModelSerializer):
     estado = serializers.SerializerMethodField(read_only=True)
@@ -277,3 +264,23 @@ class ProductoSerializer(serializers.ModelSerializer):
     
     def get_estado(self, obj):
         return "Activo" if obj.activo else "Inactivo"
+
+
+class ReporteSerializer(serializers.ModelSerializer):
+    nombre_creador = serializers.ReadOnlyField(source='fk_usuario_creador.nombre')
+    datos_reporte = serializers.ReadOnlyField() # Aquí se guardará el JSON que calculamos arriba
+
+    class Meta:
+        model = Reporte
+        fields = [
+            'id', 
+            'titulo', 
+            'fecha_inicio', 
+            'fecha_fin', 
+            'fk_usuario_creador', 
+            'nombre_creador', 
+            'created_at', 
+            'datos_reporte'
+        ]
+        # Muy importante que estos sean ReadOnly para que no den error al hacer el POST
+        read_only_fields = ['fk_usuario_creador', 'created_at', 'datos_reporte']

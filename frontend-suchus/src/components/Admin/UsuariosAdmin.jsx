@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Space, Popconfirm, message, Tag, Spin, Card } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, LockOutlined, SearchOutlined, ArrowLeftOutlined } from '@ant-design/icons';
-import { usuariosAPI } from '../../services/api';
+import { usuariosAPI, usuariostipoAPI } from '../../services/api';
 import { useNavigate } from 'react-router-dom'; // Agregar esta importación
 const { Option } = Select;
 
@@ -13,11 +13,23 @@ const UsuariosAdmin = () => {
   const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [searchText, setSearchText] = useState('');
+  const [tiposUsuario, setTiposUsuario] = useState([]);
   const [form] = Form.useForm();
   const [passwordForm] = Form.useForm();
 
+  const fetchTiposUsuario = async () => {
+    try {
+      const data = await usuariostipoAPI.getTipos();
+      const lista = Array.isArray(data) ? data : (data.results || []);
+      setTiposUsuario(lista);
+    } catch (error) {
+      console.error('Error al cargar tipos de usuario:', error);
+    }
+  };
+
   useEffect(() => {
     fetchUsuarios();
+    fetchTiposUsuario();
   }, []);
 
   const fetchUsuarios = async () => {
@@ -169,12 +181,7 @@ const UsuariosAdmin = () => {
       dataIndex: 'tipo_usuario',
       key: 'tipo_usuario',
       width: 120, // Agregamos un ancho fijo para que no "baile" la columna
-      filters: [
-        { text: 'Admin', value: 'Admin' },
-        { text: 'Cliente', value: 'Cliente' },
-        { text: 'Frecuente', value: 'Frecuente' },
-        { text: 'Alumno', value: 'Alumno' },
-      ],
+      filters: tiposUsuario.map((t) => ({ text: t.descripcion, value: t.descripcion })),
       // Esta función es la que hace la magia del filtrado
       onFilter: (value, record) => record.tipo_usuario === value,
       render: (tipo) => {
@@ -392,11 +399,12 @@ const UsuariosAdmin = () => {
             label="Tipo de Usuario"
             rules={[{ required: true, message: 'El tipo es requerido' }]}
           >
-            <Select placeholder="Selecciona un tipo">
-              <Option value="Cliente">Cliente</Option>
-              <Option value="Admin">Admin</Option>
-              <Option value="Frecuente">Frecuente</Option>
-              <Option value="Alumno">Alumno</Option>
+            <Select placeholder="Selecciona un tipo" showSearch optionFilterProp="children">
+              {tiposUsuario.map((t) => (
+                <Option key={t.id} value={t.descripcion}>
+                  {t.descripcion}{t.descuento != null && t.descuento > 0 ? ` (${t.descuento}% desc.)` : ''}
+                </Option>
+              ))}
             </Select>
           </Form.Item>
 
