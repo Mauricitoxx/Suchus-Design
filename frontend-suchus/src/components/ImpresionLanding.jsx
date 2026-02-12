@@ -55,7 +55,7 @@ const ImpresionLanding = () => {
   };
 
   return (
-    <section id="impresiones" className="services-section" style={{ padding: '60px 20px', backgroundColor: '#f9f9f9' }}>
+    <section id="impresiones" className="services-section" style={{ padding: '60px 20px', backgroundColor: '#f9f9f9', scrollMarginTop: '80px' }}>
       <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '10px', color: '#333' }}>
         Servicios de Impresión
       </h2>

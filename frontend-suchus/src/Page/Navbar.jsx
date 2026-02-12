@@ -100,10 +100,26 @@ const Navbar = ({ showLinks = true, showAuth = true, showCart = false, showBackB
           
           {showLinks && (
             <>
-              <a href="#services" onClick={() => setIsOpen(false)}>Servicios</a>
-              <a href="#products" onClick={() => setIsOpen(false)}>Productos</a>
-              <a href="#orders" onClick={() => setIsOpen(false)}>Pedidos</a>
-              <a href="#contact" onClick={() => setIsOpen(false)}>Contacto</a>
+              <a href="javascript:void(0)" onClick={(e) => {
+                e.preventDefault();
+                document.querySelector('#services')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setIsOpen(false);
+              }}>Servicios</a>
+              <a href="javascript:void(0)" onClick={(e) => {
+                e.preventDefault();
+                document.querySelector('#products')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setIsOpen(false);
+              }}>Productos</a>
+              <a href="javascript:void(0)" onClick={(e) => {
+                e.preventDefault();
+                document.querySelector('#orders')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setIsOpen(false);
+              }}>Pedidos</a>
+              <a href="javascript:void(0)" onClick={(e) => {
+                e.preventDefault();
+                document.querySelector('#contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setIsOpen(false);
+              }}>Contacto</a>
             </>
           )}
           
