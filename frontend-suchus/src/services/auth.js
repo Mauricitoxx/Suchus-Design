@@ -1,7 +1,8 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const API_URL = 'http://localhost:8000/api/';
+// Usa la variable de entorno Vite si está disponible, si no, apunta al backend en render
+const API_URL = import.meta.env.VITE_API_URL || 'https://suchus-design.onrender.com/api/';
 
 const authService = {
   register: async (userData) => {
