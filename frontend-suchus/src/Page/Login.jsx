@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Card, Input, Button, Alert } from 'antd';
-import { MailOutlined, LockOutlined, UserAddOutlined } from '@ant-design/icons';
+import { MailOutlined, LockOutlined, UserAddOutlined, WhatsAppOutlined, PhoneOutlined } from '@ant-design/icons';
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import authService from "../services/auth";
 import Navbar from "./Navbar";
@@ -122,7 +122,7 @@ const Login = () => {
               />
             </div>
 
-            <div style={{ marginBottom: '12px' }}>
+            <div style={{ marginBottom: '24px' }}>
               <label style={{ 
                 display: 'block', 
                 marginBottom: '8px', 
@@ -139,15 +139,6 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-            </div>
-
-            <div style={{ textAlign: 'right', marginBottom: '24px' }}>
-              <Button 
-                type="link" 
-                style={{ padding: 0, color: '#1890ff' }}
-              >
-                ¿Olvidaste tu contraseña?
-              </Button>
             </div>
 
             <Button
@@ -201,11 +192,106 @@ const Login = () => {
               style={{ 
                 height: '45px',
                 fontSize: '16px',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                marginBottom: '24px'
               }}
             >
               Crear una cuenta nueva
             </Button>
+
+            {/* Información de recuperación de contraseña */}
+            <div style={{
+              backgroundColor: '#f0f7ff',
+              padding: '20px',
+              borderRadius: '8px',
+              border: '1px solid #d6e4ff',
+              marginTop: '20px'
+            }}>
+              <p style={{
+                margin: '0 0 12px 0',
+                color: '#333',
+                fontSize: '14px',
+                fontWeight: '500',
+                textAlign: 'center'
+              }}>
+                ¿Olvidó su contraseña? Contáctese con un administrador
+              </p>
+              
+              <div style={{ 
+                display: 'flex', 
+                gap: '12px', 
+                justifyContent: 'center',
+                flexWrap: 'wrap'
+              }}>
+                <a 
+                  href="mailto:contacto@suchuscopy.com"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: '#1890ff',
+                    textDecoration: 'none',
+                    fontSize: '13px',
+                    padding: '6px 12px',
+                    backgroundColor: 'white',
+                    borderRadius: '4px',
+                    border: '1px solid #d6e4ff',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e6f4ff'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  <MailOutlined />
+                  Email
+                </a>
+                
+                <a 
+                  href="https://wa.me/5492211234567"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: '#25D366',
+                    textDecoration: 'none',
+                    fontSize: '13px',
+                    padding: '6px 12px',
+                    backgroundColor: 'white',
+                    borderRadius: '4px',
+                    border: '1px solid #d6e4ff',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e6f4ff'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  <WhatsAppOutlined />
+                  WhatsApp
+                </a>
+                
+                <a 
+                  href="tel:2211234567"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: '#1890ff',
+                    textDecoration: 'none',
+                    fontSize: '13px',
+                    padding: '6px 12px',
+                    backgroundColor: 'white',
+                    borderRadius: '4px',
+                    border: '1px solid #d6e4ff',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e6f4ff'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  <PhoneOutlined />
+                  Teléfono
+                </a>
+              </div>
+            </div>
           </form>
         </Card>
       </div>
