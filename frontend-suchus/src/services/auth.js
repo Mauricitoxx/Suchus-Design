@@ -33,7 +33,14 @@ const authService = {
       // Guardar tokens en cookies (en vez de localStorage)
       Cookies.set('access_token', access, { expires: 1 / 24 }); // 1 hora
       Cookies.set('refresh_token', refresh, { expires: 1 }); // 1 día
-      Cookies.set('user', JSON.stringify(user), { expires: 1 });
+
+      // Guardar cada campo del usuario en su propia cookie: user_<campo>
+      // Ejemplo: user_nombre, user_apellido, user_email, user_id, user_tipo
+      Object.keys(user).forEach((k) => {
+        const value = user[k] === null || user[k] === undefined ? '' : user[k];
+        const cookieValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        Cookies.set(`user_${k}`, cookieValue, { expires: 1 });
+      });
 
       return response.data;
     } catch (error) {
@@ -57,7 +64,14 @@ const authService = {
       const cookieOptions = { path: '/' }; 
       Cookies.remove('access_token', cookieOptions);
       Cookies.remove('refresh_token', cookieOptions);
-      Cookies.remove('user', cookieOptions);
+
+      // Borrar todas las cookies de usuario que tengan prefijo user_
+      const allCookies = Cookies.get();
+      Object.keys(allCookies).forEach((name) => {
+        if (name.startsWith('user_')) {
+          Cookies.remove(name, cookieOptions);
+        }
+      });
 
       // 2. Limpieza de seguridad adicional para cookies persistentes
       document.cookie.split(";").forEach((c) => {
@@ -73,8 +87,21 @@ const authService = {
   },
 
   getCurrentUser: () => {
-    const userStr = Cookies.get('user');
-    return userStr ? JSON.parse(userStr) : null;
+    // Reconstruir objeto `user` a partir de cookies `user_<campo>`
+    const all = Cookies.get();
+    const user = {};
+    Object.keys(all).forEach((name) => {
+      if (name.startsWith('user_')) {
+        const key = name.replace(/^user_/, '');
+        const val = all[name];
+        try {
+          user[key] = JSON.parse(val);
+        } catch (e) {
+          user[key] = val;
+        }
+      }
+    });
+    return Object.keys(user).length ? user : null;
   },
 
   isAuthenticated: () => {
