@@ -72,7 +72,7 @@ MIDDLEWARE = [
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
 # Agregamos .onrender.com para que acepte cualquier subdominio de Render
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.koyeb.app,.onrender.com,suchus-design.onrender.com').split(',')
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.onrender.com', '.koyeb.app']
 
 # --- CONFIGURACIÓN DE CORS & CSRF ---
 CORS_ALLOWED_ORIGINS = [
