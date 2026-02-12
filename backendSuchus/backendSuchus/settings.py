@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-x$e$u^seus*v0t4x&)x460sdl#
 # En producción DEBUG debe ser False. En local debe ser True en el .env
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.koyeb.app,clud2025.onrender.com').split(',')
+
 
 # --- DEFINICIÓN DE APLICACIONES ---
 INSTALLED_APPS = [
@@ -61,6 +61,10 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# --- CONFIGURACIÓN DE SEGURIDAD ---
+# Agregamos .onrender.com para que acepte cualquier subdominio de Render
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.koyeb.app,.onrender.com,suchus-design.onrender.com').split(',')
+
 # --- CONFIGURACIÓN DE CORS & CSRF ---
 CORS_ALLOWED_ORIGINS = [
     "https://suchus-design.vercel.app",
@@ -74,6 +78,7 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "https://*.koyeb.app",
     "https://clud2025.onrender.com",
+    "https://*.onrender.com",
     "https://suchus-design.vercel.app",
 ]
 
