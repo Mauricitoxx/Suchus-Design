@@ -134,6 +134,8 @@ class PedidoViewSet(viewsets.ModelViewSet):
             )
 
     def get_queryset(self):
+        from django.db.models import Prefetch
+        
         user = self.request.user
         
         # CORRECCIÓN: Acceder a la descripción del tipo de usuario correctamente
@@ -165,6 +167,14 @@ class PedidoViewSet(viewsets.ModelViewSet):
         if fecha_hasta:
             queryset = queryset.filter(fecha__lte=fecha_hasta)
 
+        # OPTIMIZACIÓN: Cargar relaciones de una vez para evitar N+1 queries
+        queryset = queryset.select_related('fk_usuario')
+        queryset = queryset.prefetch_related(
+            'pedidoproductodetalle_set',
+            'pedidoimpresiondetalle_set',
+            'historial_estados'
+        )
+
         return queryset.order_by('-id')
 
     # ESTO ES LO QUE TE FALTA PARA QUITAR EL 404
@@ -173,7 +183,15 @@ class PedidoViewSet(viewsets.ModelViewSet):
         """
         Endpoint: GET /api/pedidos/mis_pedidos/
         """
-        pedidos = Pedido.objects.filter(fk_usuario=request.user).order_by('-id')
+        pedidos = (Pedido.objects
+                   .filter(fk_usuario=request.user)
+                   .select_related('fk_usuario')
+                   .prefetch_related(
+                       'pedidoproductodetalle_set',
+                       'pedidoimpresiondetalle_set',
+                       'historial_estados'
+                   )
+                   .order_by('-id'))
         
         # Manejo de paginación (por si usas en el futuro)
         page = self.paginate_queryset(pedidos)
