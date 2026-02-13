@@ -30,7 +30,7 @@ except Exception as e:
 def enviar_notificacion_cambio_estado(pedido):
     """
     Envía un email al cliente cuando cambia el estado de su pedido.
-    Esta función es completamente independiente y si falla no afecta el cambio de estado.
+    Usa el backend de Django configurado en settings.py (SendGrid en prod, Gmail en dev)
     
     Args:
         pedido: Objeto Pedido de Django
@@ -88,38 +88,31 @@ def enviar_notificacion_cambio_estado(pedido):
             """
             print(f"[EMAIL] Usando template fallback")
         
-        # Enviar usando smtplib directamente para evitar problemas de SSL en Windows
-        import smtplib
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
+        # Usar Django EmailMessage con el backend configurado en settings
+        from django.core.mail import EmailMessage
         
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = f"📦 Actualización de tu Pedido #{pedido.id} - {pedido.estado}"
-        msg['From'] = settings.EMAIL_HOST_USER
-        msg['To'] = usuario.email
+        email = EmailMessage(
+            subject=f"📦 Actualización de tu Pedido #{pedido.id} - {pedido.estado}",
+            body=html_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[usuario.email]
+        )
+        email.content_subtype = 'html'
         
-        parte_html = MIMEText(html_content, 'html', 'utf-8')
-        msg.attach(parte_html)
-        
-        print(f"[EMAIL] Conectando a {settings.EMAIL_HOST}:{settings.EMAIL_PORT}...")
+        print(f"[EMAIL] Enviando email mediante {settings.EMAIL_BACKEND}...")
         logger.info(f"Enviando email a {usuario.email}...")
         
-        # Conectar y enviar con SSL context
-        context = ssl.create_default_context()
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
+        # Enviar el email
+        resultado = email.send(fail_silently=False)
         
-        print(f"[EMAIL] Iniciando TLS...")
-        with smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=10) as server:
-            server.starttls(context=context)
-            print(f"[EMAIL] TLS iniciado, autenticando...")
-            server.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
-            print(f"[EMAIL] Autenticación exitosa, enviando mensaje...")
-            server.send_message(msg)
-        
-        logger.info(f"✅ Email enviado exitosamente a {usuario.email} para pedido #{pedido.id}")
-        print(f"[EMAIL] ✅ Email enviado exitosamente a {usuario.email} para pedido #{pedido.id}\n")
-        return True
+        if resultado:
+            logger.info(f"✅ Email enviado exitosamente a {usuario.email} para pedido #{pedido.id}")
+            print(f"[EMAIL] ✅ Email enviado exitosamente a {usuario.email}\n")
+            return True
+        else:
+            logger.warning(f"⚠️ Email.send() retornó 0 para {usuario.email}")
+            print(f"[EMAIL] ⚠️ Email.send() no confirmó envío\n")
+            return False
         
     except Exception as e:
         # Si falla, logueamos el error completo pero NO lo propagamos
@@ -135,6 +128,7 @@ def enviar_notificacion_cambio_estado(pedido):
 def enviar_notificacion_correccion_requerida(pedido, motivo):
     """
     Envía un email al cliente cuando su pedido requiere corrección.
+    Usa el backend de Django configurado en settings.py
     
     Args:
         pedido: Objeto Pedido de Django
@@ -190,38 +184,31 @@ def enviar_notificacion_correccion_requerida(pedido, motivo):
             """
             print(f"[EMAIL] Usando template fallback para corrección")
         
-        # Enviar usando smtplib directamente para evitar problemas de SSL en Windows
-        import smtplib
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
+        # Usar Django EmailMessage con el backend configurado en settings
+        from django.core.mail import EmailMessage
         
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = f"⚠️ Tu Pedido #{pedido.id} Requiere Corrección"
-        msg['From'] = settings.EMAIL_HOST_USER
-        msg['To'] = usuario.email
+        email = EmailMessage(
+            subject=f"⚠️ Tu Pedido #{pedido.id} Requiere Corrección",
+            body=html_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[usuario.email]
+        )
+        email.content_subtype = 'html'
         
-        parte_html = MIMEText(html_content, 'html', 'utf-8')
-        msg.attach(parte_html)
-        
-        print(f"[EMAIL] Conectando a {settings.EMAIL_HOST}:{settings.EMAIL_PORT}...")
+        print(f"[EMAIL] Enviando email mediante {settings.EMAIL_BACKEND}...")
         logger.info(f"Enviando email de corrección a {usuario.email}...")
         
-        # Conectar y enviar con SSL context
-        context = ssl.create_default_context()
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
+        # Enviar el email
+        resultado = email.send(fail_silently=False)
         
-        print(f"[EMAIL] Iniciando TLS...")
-        with smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=10) as server:
-            server.starttls(context=context)
-            print(f"[EMAIL] TLS iniciado, autenticando...")
-            server.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
-            print(f"[EMAIL] Autenticación exitosa, enviando mensaje...")
-            server.send_message(msg)
-        
-        logger.info(f"✅ Email de corrección enviado a {usuario.email} para pedido #{pedido.id}")
-        print(f"[EMAIL] ✅ Email de corrección enviado a {usuario.email} para pedido #{pedido.id}\n")
-        return True
+        if resultado:
+            logger.info(f"✅ Email de corrección enviado a {usuario.email} para pedido #{pedido.id}")
+            print(f"[EMAIL] ✅ Email de corrección enviado a {usuario.email}\n")
+            return True
+        else:
+            logger.warning(f"⚠️ Email.send() retornó 0 para {usuario.email}")
+            print(f"[EMAIL] ⚠️ Email.send() no confirmó envío\n")
+            return False
         
     except Exception as e:
         import traceback
