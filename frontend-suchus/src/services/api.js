@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // URL base del backend (usa la variable Vite si está definida)
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/';
+const API_URL = import.meta.env.VITE_API_URL || 'https://suchus-design.onrender.com/api/';
 
 // Crear instancia de axios con configuración base
 const api = axios.create({
