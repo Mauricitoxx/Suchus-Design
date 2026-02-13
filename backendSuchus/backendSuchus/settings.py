@@ -240,9 +240,9 @@ else:
     EMAIL_HOST = 'smtp.gmail.com'
     EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'Copysuchus@gmail.com')
     EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'pmxn chkn rlfh udwh')
-    EMAIL_PORT: 465
-    EMAIL_USE_SSL: True 
-    EMAIL_USE_TLS: False
+    EMAIL_PORT= 465
+    EMAIL_USE_SSL= True 
+    EMAIL_USE_TLS= False
 
 # Email por defecto para FROM
 DEFAULT_FROM_EMAIL = 'Copysuchus@gmail.com'
