@@ -238,10 +238,6 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 print(f"✅ Pedido #{pedido.id} actualizado a estado: {nuevo_estado}")
                 
                 # ===== SISTEMA DE NOTIFICACIONES =====
-                # TEMPORALMENTE DESACTIVADO - Configurar variables de entorno en Render primero
-                print(f"⚠️ Sistema de emails temporalmente desactivado")
-                # TODO: Habilitar después de configurar EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD en Render
-                """
                 # Enviar email al cliente (aislado para que no afecte el cambio de estado si falla)
                 print(f"📧 Intentando enviar notificación por email...")
                 try:
@@ -264,7 +260,6 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     import traceback
                     print(f"❌ [ADVERTENCIA] Error al enviar notificación: {e}")
                     print(f"Traceback completo:\n{traceback.format_exc()}")
-                """
                 # ===== FIN NOTIFICACIONES =====
                 
                 print(f"\n{'='*60}\n")
