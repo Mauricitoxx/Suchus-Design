@@ -222,5 +222,5 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
-EMAIL_HOST_USER = 'Valenxity@gmail.com'
-EMAIL_HOST_PASSWORD = 'tomt dlsd gwna kbzl' # No es tu clave normal, es una clave de app de Google
+EMAIL_HOST_USER = 'Copysuchus@gmail.com'
+EMAIL_HOST_PASSWORD = 'pmxn chkn rlfh udwh' # No es tu clave normal, es una clave de app de Google
