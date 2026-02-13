@@ -219,8 +219,8 @@ MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "APP_USR-5006527019840999-020415-
 # settings.py
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_USE_TLS = True
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'Copysuchus@gmail.com'
-EMAIL_HOST_PASSWORD = 'pmxn chkn rlfh udwh' # No es tu clave normal, es una clave de app de Google
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'Copysuchus@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'pmxn chkn rlfh udwh')
