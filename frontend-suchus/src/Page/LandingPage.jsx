@@ -316,7 +316,7 @@ const LandingPage = () => {
           >
             <RobotOutlined style={{ fontSize: '60px', color: '#722ed1', marginBottom: '16px' }} />
             <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', color: '#333' }}>
-              Chatbot
+              Chatbot - Suchy
             </h3>
             <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
               Asistente virtual disponible 24/7 en la esquina inferior derecha
@@ -340,7 +340,7 @@ const LandingPage = () => {
               Email
             </h3>
             <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
-              contacto@suchuscopy.com
+              CopySuchus@Gmail.com
             </p>
           </Card>
 
@@ -361,7 +361,7 @@ const LandingPage = () => {
               WhatsApp
             </h3>
             <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
-              +54 9 221 123-4567
+              +54 9 221 541 0023
             </p>
           </Card>
 
@@ -382,7 +382,7 @@ const LandingPage = () => {
               Teléfono
             </h3>
             <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
-              221-123-4567
+              221-540-0023
             </p>
           </Card>
         </div>
