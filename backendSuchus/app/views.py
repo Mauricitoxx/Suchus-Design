@@ -204,65 +204,87 @@ class PedidoViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['patch'])
     def cambiar_estado(self, request, pk=None):
-        pedido = self.get_object()
-        nuevo_estado = request.data.get('estado')
-        motivo_correccion = request.data.get('motivo_correccion', None)
-
-        print(f"\n{'='*60}")
-        print(f"🔄 CAMBIO DE ESTADO DE PEDIDO")
-        print(f"{'='*60}")
-        print(f"Pedido ID: {pedido.id}")
-        print(f"Estado actual: {pedido.estado}")
-        print(f"Nuevo estado: {nuevo_estado}")
-        print(f"Usuario: {pedido.fk_usuario.nombre} ({pedido.fk_usuario.email})")
-        print(f"{'='*60}\n")
-
-        if nuevo_estado in dict(Pedido.ESTADO).keys():
-            pedido.estado = nuevo_estado
-            # Si el estado es 'Requiere Corrección', guardar el motivo
-            if nuevo_estado == 'Requiere Corrección' and motivo_correccion:
-                pedido.motivo_correccion = motivo_correccion
-            elif nuevo_estado != 'Requiere Corrección':
-                pedido.motivo_correccion = None
-            pedido.save()
-            PedidoEstadoHistorial.objects.create(fk_pedido=pedido, estado=nuevo_estado)
+        try:
+            # Obtener el pedido con las optimizaciones de relaciones
+            queryset = self.get_queryset()
+            pedido = queryset.get(pk=pk)
             
-            print(f"✅ Pedido #{pedido.id} actualizado a estado: {nuevo_estado}")
+            nuevo_estado = request.data.get('estado')
+            motivo_correccion = request.data.get('motivo_correccion', None)
+
+            print(f"\n{'='*60}")
+            print(f"🔄 CAMBIO DE ESTADO DE PEDIDO")
+            print(f"{'='*60}")
+            print(f"Pedido ID: {pedido.id}")
+            print(f"Estado actual: {pedido.estado}")
+            print(f"Nuevo estado: {nuevo_estado}")
             
-            # ===== SISTEMA DE NOTIFICACIONES =====
-            # Enviar email al cliente (aislado para que no afecte el cambio de estado si falla)
-            print(f"📧 Intentando enviar notificación por email...")
             try:
-                if nuevo_estado == 'Requiere Corrección' and motivo_correccion:
-                    # Email especial para correcciones
-                    resultado = enviar_notificacion_correccion_requerida(pedido, motivo_correccion)
-                    if resultado:
-                        print(f"✅ Notificación de corrección enviada exitosamente")
-                    else:
-                        print(f"⚠️ No se pudo enviar notificación de corrección")
-                else:
-                    # Email general de cambio de estado
-                    resultado = enviar_notificacion_cambio_estado(pedido)
-                    if resultado:
-                        print(f"✅ Notificación enviada exitosamente")
-                    else:
-                        print(f"⚠️ No se pudo enviar notificación")
+                print(f"Usuario: {pedido.fk_usuario.nombre} ({pedido.fk_usuario.email})")
             except Exception as e:
-                # Si falla el email, solo lo registramos pero NO interrumpimos el flujo
-                import traceback
-                print(f"❌ [ADVERTENCIA] Error al enviar notificación: {e}")
-                print(f"Traceback completo:\n{traceback.format_exc()}")
-            # ===== FIN NOTIFICACIONES =====
-            
-            print(f"\n{'='*60}\n")
-            
-            serializer = self.get_serializer(pedido)
-            return Response(serializer.data)
+                print(f"⚠️ Error al acceder a datos del usuario: {e}")
+            print(f"{'='*60}\n")
 
-        return Response(
-            {"error": "Estado inválido"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+            if nuevo_estado in dict(Pedido.ESTADO).keys():
+                pedido.estado = nuevo_estado
+                # Si el estado es 'Requiere Corrección', guardar el motivo
+                if nuevo_estado == 'Requiere Corrección' and motivo_correccion:
+                    pedido.motivo_correccion = motivo_correccion
+                elif nuevo_estado != 'Requiere Corrección':
+                    pedido.motivo_correccion = None
+                pedido.save()
+                PedidoEstadoHistorial.objects.create(fk_pedido=pedido, estado=nuevo_estado)
+                
+                print(f"✅ Pedido #{pedido.id} actualizado a estado: {nuevo_estado}")
+                
+                # ===== SISTEMA DE NOTIFICACIONES =====
+                # Enviar email al cliente (aislado para que no afecte el cambio de estado si falla)
+                print(f"📧 Intentando enviar notificación por email...")
+                try:
+                    if nuevo_estado == 'Requiere Corrección' and motivo_correccion:
+                        # Email especial para correcciones
+                        resultado = enviar_notificacion_correccion_requerida(pedido, motivo_correccion)
+                        if resultado:
+                            print(f"✅ Notificación de corrección enviada exitosamente")
+                        else:
+                            print(f"⚠️ No se pudo enviar notificación de corrección")
+                    else:
+                        # Email general de cambio de estado
+                        resultado = enviar_notificacion_cambio_estado(pedido)
+                        if resultado:
+                            print(f"✅ Notificación enviada exitosamente")
+                        else:
+                            print(f"⚠️ No se pudo enviar notificación")
+                except Exception as e:
+                    # Si falla el email, solo lo registramos pero NO interrumpimos el flujo
+                    import traceback
+                    print(f"❌ [ADVERTENCIA] Error al enviar notificación: {e}")
+                    print(f"Traceback completo:\n{traceback.format_exc()}")
+                # ===== FIN NOTIFICACIONES =====
+                
+                print(f"\n{'='*60}\n")
+                
+                # Recargar el pedido desde DB para asegurar que tenemos todos los datos actualizados
+                pedido.refresh_from_db()
+                serializer = self.get_serializer(pedido)
+                return Response(serializer.data)
+
+            return Response(
+                {"error": "Estado inválido"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        except Exception as e:
+            # Errores inesperados
+            import traceback
+            error_msg = str(e)
+            error_traceback = traceback.format_exc()
+            print(f"❌ ERROR CRÍTICO EN CAMBIAR_ESTADO: {error_msg}")
+            print(f"Traceback:\n{error_traceback}")
+            return Response(
+                {'error': 'Error al cambiar estado del pedido', 'details': error_msg},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @action(detail=True, methods=['post'])
     def corregir_archivos(self, request, pk=None):
