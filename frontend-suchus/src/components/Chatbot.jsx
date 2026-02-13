@@ -140,7 +140,7 @@ const Chatbot = () => {
         const reply = data?.reply || JSON.stringify(data);
         setMessages(prev => [...prev, { from: 'bot', text: reply }]);
       } else {
-        const simulated = `Respuesta automática: recibí tu mensaje "${messageText}".`;
+        const simulated = `En este momento no pude procesar tu solicitud, por favor contactame con soporte o intenta en otro momento. Mauro Lista +54 9 221 541 0023`;
         setTimeout(() => setMessages(prev => [...prev, { from: 'bot', text: simulated }]), 800);
       }
     } catch (err) {
