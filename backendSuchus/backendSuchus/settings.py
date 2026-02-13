@@ -206,7 +206,17 @@ USE_TZ = True
 
 # --- ARCHIVOS ESTÁTICOS ---
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# En producción (Railway/Koyeb) usar /tmp que siempre existe y es escribible
+# En desarrollo usar la carpeta local staticfiles
+if DEBUG:
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+else:
+    STATIC_ROOT = '/tmp/staticfiles'
+
+# Crear el directorio si no existe
+os.makedirs(STATIC_ROOT, exist_ok=True)
+
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -216,11 +226,24 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "APP_USR-5006527019840999-020415-bd90aef781be9ac6dbb5908fdf64bbf6-3182278274")
 
 
-# settings.py
+# --- CONFIGURACIÓN DE EMAIL ---
+# Priorizar SendGrid (para producción en Railway) sobre Gmail
+SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', None)
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
-EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'Copysuchus@gmail.com')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'pmxn chkn rlfh udwh')
+if SENDGRID_API_KEY:
+    # Usar SendGrid en producción
+    EMAIL_BACKEND = 'sendgrid_backend.SendgridBackend'
+    SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+else:
+    # Fallback a Gmail en desarrollo local
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'Copysuchus@gmail.com')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'pmxn chkn rlfh udwh')
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+    EMAIL_USE_SSL = False
+
+# Email por defecto para FROM
+DEFAULT_FROM_EMAIL = 'Copysuchus@gmail.com'
+SERVER_EMAIL = 'Copysuchus@gmail.com'
