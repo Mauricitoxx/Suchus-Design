@@ -22,10 +22,10 @@ import os
 import pandas as pd
 from django.db import models
 from django.db.models import Sum, Count, F
-from .models import Usuario, Pedido, Impresion, Producto, UsuarioTipo, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial,Reporte
+from .models import Usuario, Pedido, Impresion, Producto, UsuarioTipo, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial, Reporte, TipoImpresion
 from .serializers import (UsuarioRegisterSerializer, UsuarioLoginSerializer, PedidoSerializer, 
                           ImpresionSerializer, ProductoSerializer, UsuarioSerializer,
-                          UsuarioCreateSerializer, UsuarioUpdateSerializer, ReporteSerializer)
+                          UsuarioCreateSerializer, UsuarioUpdateSerializer, ReporteSerializer, TipoImpresionSerializer)
 from .serializers import UsuarioTipoSerializer
 from .notifications import enviar_notificacion_cambio_estado, enviar_notificacion_correccion_requerida
 # Create your views here.
@@ -837,6 +837,166 @@ class ProductoViewSet(viewsets.ModelViewSet):
             "precio_anterior": precio_anterior,
             "precio_nuevo": nuevo_precio,
             "producto": serializer.data
+        })
+
+class TipoImpresionViewSet(viewsets.ModelViewSet):
+    queryset = TipoImpresion.objects.all()
+    serializer_class = TipoImpresionSerializer
+    
+    def get_queryset(self):
+        """Obtener tipos de impresión con filtros opcionales"""
+        queryset = TipoImpresion.objects.all()
+        
+        # Filtro por estado (activo/inactivo)
+        activo = self.request.query_params.get('activo', None)
+        if activo is not None:
+            queryset = queryset.filter(activo=activo.lower() == 'true')
+        
+        # Filtro por formato
+        formato = self.request.query_params.get('formato', None)
+        if formato is not None:
+            queryset = queryset.filter(formato=formato.upper())
+        
+        # Filtro por color
+        color = self.request.query_params.get('color', None)
+        if color is not None:
+            queryset = queryset.filter(color=color.lower() == 'true')
+        
+        return queryset.order_by('formato', 'color')
+    
+    def create(self, request, *args, **kwargs):
+        """Alta de tipo de impresión"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Validaciones adicionales
+        if serializer.validated_data['precio'] <= 0:
+            return Response(
+                {"error": "El precio debe ser mayor a 0"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
+    
+    def update(self, request, *args, **kwargs):
+        """Modificación completa de tipo de impresión"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        
+        # Validar precio si se está actualizando
+        if 'precio' in serializer.validated_data:
+            if serializer.validated_data['precio'] <= 0:
+                return Response(
+                    {"error": "El precio debe ser mayor a 0"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        self.perform_update(serializer)
+        return Response(serializer.data)
+    
+    def partial_update(self, request, *args, **kwargs):
+        """Actualización parcial de tipo de impresión"""
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+    
+    def destroy(self, request, *args, **kwargs):
+        """Baja física de tipo de impresión"""
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {"mensaje": "Tipo de impresión eliminado físicamente"},
+            status=status.HTTP_204_NO_CONTENT
+        )
+    
+    @action(detail=True, methods=['patch'])
+    def desactivar(self, request, pk=None):
+        """Baja lógica de tipo de impresión"""
+        tipo_impresion = self.get_object()
+        
+        if not tipo_impresion.activo:
+            return Response(
+                {"error": "El tipo de impresión ya está inactivo"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        tipo_impresion.activo = False
+        tipo_impresion.save()
+        serializer = self.get_serializer(tipo_impresion)
+        return Response({
+            "mensaje": "Tipo de impresión desactivado correctamente",
+            "tipo_impresion": serializer.data
+        })
+    
+    @action(detail=True, methods=['patch'])
+    def activar(self, request, pk=None):
+        """Reactivar tipo de impresión"""
+        tipo_impresion = self.get_object()
+        
+        if tipo_impresion.activo:
+            return Response(
+                {"error": "El tipo de impresión ya está activo"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        tipo_impresion.activo = True
+        tipo_impresion.save()
+        serializer = self.get_serializer(tipo_impresion)
+        return Response({
+            "mensaje": "Tipo de impresión activado correctamente",
+            "tipo_impresion": serializer.data
+        })
+    
+    @action(detail=False, methods=['get'])
+    def activos(self, request):
+        """Listar solo tipos de impresión activos"""
+        tipos_activos = TipoImpresion.objects.filter(activo=True).order_by('formato', 'color')
+        serializer = self.get_serializer(tipos_activos, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['patch'])
+    def actualizar_precio(self, request, pk=None):
+        """Actualización específica de precio"""
+        tipo_impresion = self.get_object()
+        
+        nuevo_precio = request.data.get('precio')
+        if nuevo_precio is None:
+            return Response(
+                {"error": "El campo 'precio' es requerido"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            nuevo_precio = float(nuevo_precio)
+            if nuevo_precio <= 0:
+                return Response(
+                    {"error": "El precio debe ser mayor a 0"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except ValueError:
+            return Response(
+                {"error": "El precio debe ser un número válido"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        precio_anterior = tipo_impresion.precio
+        tipo_impresion.precio = nuevo_precio
+        tipo_impresion.save()
+        
+        serializer = self.get_serializer(tipo_impresion)
+        return Response({
+            "mensaje": "Precio actualizado correctamente",
+            "precio_anterior": precio_anterior,
+            "precio_nuevo": nuevo_precio,
+            "tipo_impresion": serializer.data
         })
 
 class UsuarioViewSet(viewsets.ModelViewSet):

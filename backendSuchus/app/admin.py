@@ -1,5 +1,5 @@
 from django.contrib import admin
-from app.models import Usuario, UsuarioTipo, Pedido, Producto, Impresion
+from app.models import Usuario, UsuarioTipo, Pedido, Producto, Impresion, TipoImpresion
 
 # Register your models here.
 
@@ -38,6 +38,14 @@ class ProductoAdmin(admin.ModelAdmin):
     list_display = ('id', 'nombre', 'precioUnitario', 'activo', 'created_at')
     list_filter = ('activo', 'created_at')
     search_fields = ('nombre', 'descripcion')
+    readonly_fields = ('created_at', 'updated_at')
+    list_per_page = 20
+
+@admin.register(TipoImpresion)
+class TipoImpresionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'formato', 'color', 'descripcion', 'precio', 'activo', 'created_at')
+    list_filter = ('formato', 'color', 'activo', 'created_at')
+    search_fields = ('descripcion', 'formato')
     readonly_fields = ('created_at', 'updated_at')
     list_per_page = 20
 
