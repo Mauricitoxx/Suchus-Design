@@ -246,7 +246,7 @@ const Login = () => {
                 </a>
                 
                 <a 
-                  href="https://wa.me/5492211234567"
+                  href="https://wa.me/5492215410023"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
@@ -270,7 +270,7 @@ const Login = () => {
                 </a>
                 
                 <a 
-                  href="tel:2211234567"
+                  href="tel:5492215410023"
                   style={{
                     display: 'flex',
                     alignItems: 'center',

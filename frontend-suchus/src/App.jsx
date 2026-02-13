@@ -8,6 +8,7 @@ import Perfil from "./Page/PerfilMenu";
 import Admin from "./components/Admin/Admin";
 import UsuariosAdmin from "./components/Admin/UsuariosAdmin";
 import ProductosAdmin from "./components/Admin/ProductosAdmin";
+import ImpresionesAdmin from "./components/Admin/ImpresionesAdmin";
 import NotFound from "./Page/NotFound";
 import Pedido from "./Page/Pedido";
 import authService from './services/auth';// Importamos tu authService
@@ -66,6 +67,9 @@ function App() {
         } />
         <Route path="/admin/productos" element={
           <AdminRoute> <ProductosAdmin /> </AdminRoute>
+        } />
+        <Route path="/admin/impresiones" element={
+          <AdminRoute> <ImpresionesAdmin /> </AdminRoute>
         } />
         <Route path="/admin/pedidos" element={
           <AdminRoute> <PedidoAdmin /> </AdminRoute>

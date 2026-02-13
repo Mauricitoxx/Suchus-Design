@@ -1,50 +1,80 @@
-import React from 'react';
-import { Card } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Card, Spin } from 'antd';
 import { PrinterOutlined, FileTextOutlined, FileImageOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth';
+import api from '../services/api';
 
 const ImpresionLanding = () => {
   const navigate = useNavigate();
+  const [opcionesImpresion, setOpcionesImpresion] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const opcionesImpresion = [
-    {
-      id: 1,
-      nombre: 'A4 Blanco y Negro',
-      formato: 'A4',
-      color: false,
-      precio: 50,
-      icono: <FileTextOutlined style={{ fontSize: '60px', color: '#1890ff' }} />,
-      descripcion: 'Ideal para documentos y trabajos universitarios'
-    },
-    {
-      id: 2,
-      nombre: 'A4 Color',
-      formato: 'A4',
-      color: true,
-      precio: 100,
-      icono: <FileImageOutlined style={{ fontSize: '60px', color: '#52c41a' }} />,
-      descripcion: 'Perfecta para presentaciones con imágenes'
-    },
-    {
-      id: 3,
-      nombre: 'A3 Color',
-      formato: 'A3',
-      color: true,
-      precio: 200,
-      icono: <PrinterOutlined style={{ fontSize: '60px', color: '#fa8c16' }} />,
-      descripcion: 'Formato grande para pósters y planos'
-    },
-    {
-      id: 4,
-      nombre: 'A3 Blanco y Negro',
-      formato: 'A3',
-      color: false,
-      precio: 150,
-      icono: <PrinterOutlined style={{ fontSize: '60px', color: '#595959' }} />,
-      descripcion: 'Documentos técnicos y planos en gran tamaño'
+  useEffect(() => {
+    fetchTiposImpresion();
+  }, []);
+
+  const fetchTiposImpresion = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('tipo-impresion/activos/');
+      const tipos = response.data;
+      
+      // Mapear los datos del backend a la estructura del componente
+      const opcionesFormateadas = tipos.map((tipo) => ({
+        id: tipo.id,
+        nombre: `${tipo.formato} ${tipo.color ? 'Color' : 'Blanco y Negro'}`,
+        formato: tipo.formato,
+        color: tipo.color,
+        precio: tipo.precio,
+        icono: getIcono(tipo.formato, tipo.color),
+        descripcion: tipo.descripcion
+      }));
+      
+      setOpcionesImpresion(opcionesFormateadas);
+    } catch (error) {
+      console.error('Error al cargar tipos de impresión:', error);
+      // Fallback a datos estáticos si hay error
+      setOpcionesImpresion([
+        {
+          id: 1,
+          nombre: 'A4 Blanco y Negro',
+          formato: 'A4',
+          color: false,
+          precio: 50,
+          icono: <FileTextOutlined style={{ fontSize: '60px', color: '#1890ff' }} />,
+          descripcion: 'Ideal para documentos y trabajos universitarios'
+        },
+        {
+          id: 2,
+          nombre: 'A4 Color',
+          formato: 'A4',
+          color: true,
+          precio: 100,
+          icono: <FileImageOutlined style={{ fontSize: '60px', color: '#52c41a' }} />,
+          descripcion: 'Perfecta para presentaciones con imágenes'
+        }
+      ]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const getIcono = (formato, color) => {
+    // Iconos según formato y tipo
+    if (formato === 'A4' && !color) {
+      return <FileTextOutlined style={{ fontSize: '60px', color: '#1890ff' }} />;
+    } else if (formato === 'A4' && color) {
+      return <FileImageOutlined style={{ fontSize: '60px', color: '#52c41a' }} />;
+    } else if (formato === 'A3' && color) {
+      return <PrinterOutlined style={{ fontSize: '60px', color: '#fa8c16' }} />;
+    } else if (formato === 'A3' && !color) {
+      return <PrinterOutlined style={{ fontSize: '60px', color: '#595959' }} />;
+    } else {
+      // Para otros formatos (A5, A2, etc.)
+      return <PrinterOutlined style={{ fontSize: '60px', color: color ? '#52c41a' : '#595959' }} />;
+    }
+  };
 
   const handleImprimir = () => {
     if (authService.isAuthenticated()) {
@@ -63,15 +93,17 @@ const ImpresionLanding = () => {
         Elegí el formato y tipo de impresión que necesitás
       </p>
       
-      <div style={{ 
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '1.5rem',
-        justifyContent: 'center',
-        maxWidth: '1200px',
-        margin: '0 auto',
-        marginBottom: '40px'
-      }}>
+      <Spin spinning={loading} tip="Cargando servicios...">
+        <div style={{ 
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '1.5rem',
+          justifyContent: 'center',
+          maxWidth: '1200px',
+          margin: '0 auto',
+          marginBottom: '40px',
+          minHeight: loading ? '300px' : 'auto'
+        }}>
         {opcionesImpresion.map((opcion) => (
           <Card
             key={opcion.id}
@@ -129,6 +161,7 @@ const ImpresionLanding = () => {
           </Card>
         ))}
       </div>
+      </Spin>
 
       <div style={{ textAlign: 'center' }}>
         <button

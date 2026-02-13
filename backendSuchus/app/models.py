@@ -83,6 +83,34 @@ class Producto(models.Model):
         ordering = ['id']
 
 
+class TipoImpresion(models.Model):
+    FORMATO = [
+        ("A0", "A0 (841 × 1189 mm)"),
+        ("A1", "A1 (594 × 841 mm)"),
+        ("A2", "A2 (420 × 594 mm)"),
+        ("A3", "A3 (297 × 420 mm)"),
+        ("A4", "A4 (210 × 297 mm)"),
+        ("A5", "A5 (148 × 210 mm)"),
+        ("A6", "A6 (105 × 148 mm)"),
+    ]
+    formato = models.CharField(max_length=3, choices=FORMATO, null=False)
+    color = models.BooleanField(null=False)
+    descripcion = models.TextField(null=False)
+    precio = models.FloatField(null=False)
+    activo = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    
+    def __str__(self):
+        tipo_color = "Color" if self.color else "B/N"
+        return f"{self.formato} {tipo_color} - ${self.precio}"
+    
+    class Meta:
+        ordering = ['formato', 'color']
+        verbose_name = 'Tipo de Impresión'
+        verbose_name_plural = 'Tipos de Impresión'
+
+
 class Impresion(models.Model):
     FORMATO = [
         ("A0", "A0 (841 × 1189 mm)"),

@@ -346,7 +346,7 @@ const LandingPage = () => {
 
           <Card
             hoverable
-            onClick={() => window.open('https://wa.me/5492211234567', '_blank')}
+            onClick={() => window.open('https://wa.me/5492215410023', '_blank')}
             style={{ 
               width: 260,
               borderRadius: '12px',
@@ -361,13 +361,14 @@ const LandingPage = () => {
               WhatsApp
             </h3>
             <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
+
               +54 9 221 541 0023
             </p>
           </Card>
 
           <Card
             hoverable
-            onClick={() => window.location.href = 'tel:2211234567'}
+            onClick={() => window.location.href = 'tel:5492215410023'}
             style={{ 
               width: 260,
               borderRadius: '12px',
@@ -382,7 +383,8 @@ const LandingPage = () => {
               Teléfono
             </h3>
             <p style={{ fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
-              221-540-0023
+
+              221-541-0023
             </p>
           </Card>
         </div>

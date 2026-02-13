@@ -1,17 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Select, InputNumber, Button, Tag, message } from 'antd';
 import { DeleteOutlined, PrinterOutlined, FilePdfOutlined, FileImageOutlined } from '@ant-design/icons';
 import '../assets/style/CardImpresion.css';
 import { saveFileToBuffer } from '../services/filebuffer';
+import api from '../services/api';
 
 const { Option } = Select;
 
 const CardImpresion = () => {
   const [archivos, setArchivos] = useState([]);
-
-  const precioPorHoja = {
+  const [precioPorHoja, setPrecioPorHoja] = useState({
     A4: { 'blanco y negro': 20, color: 40 },
     A3: { 'blanco y negro': 30, color: 60 },
+    A5: { 'blanco y negro': 15, color: 30 },
+  });
+  const [formatosDisponibles, setFormatosDisponibles] = useState([]);
+
+  useEffect(() => {
+    cargarTarifas();
+  }, []);
+
+  const cargarTarifas = async () => {
+    try {
+      const response = await api.get('tipo-impresion/activos/');
+      const tarifas = response.data;
+      
+      // Crear objeto de precios dinámico
+      const nuevasTarifas = {};
+      const formatos = new Set();
+      
+      tarifas.forEach(tarifa => {
+        if (!nuevasTarifas[tarifa.formato]) {
+          nuevasTarifas[tarifa.formato] = {};
+        }
+        const tipoColor = tarifa.color ? 'color' : 'blanco y negro';
+        nuevasTarifas[tarifa.formato][tipoColor] = tarifa.precio;
+        formatos.add(tarifa.formato);
+      });
+      
+      setPrecioPorHoja(nuevasTarifas);
+      setFormatosDisponibles(Array.from(formatos).sort());
+    } catch (error) {
+      console.error('Error al cargar tarifas:', error);
+      message.warning('No se pudieron cargar las tarifas actualizadas, usando valores por defecto');
+    }
   };
 
   const obtenerPaginasPDF = (file) => {
@@ -42,6 +74,8 @@ const CardImpresion = () => {
 
     for (const file of files) {
       const paginas = await obtenerPaginasPDF(file);
+      const formatoDefault = formatosDisponibles.length > 0 ? formatosDisponibles[0] : 'A4';
+      
       nuevosArchivos.push({
         id: Math.random().toString(36).substr(2, 9),
         file, 
@@ -49,7 +83,7 @@ const CardImpresion = () => {
         hojas: paginas,
         previewUrl: URL.createObjectURL(file),
         type: file.type,
-        tipoHoja: 'A4',
+        tipoHoja: formatoDefault,
         color: 'blanco y negro',
         cantidad: 1
       });
@@ -82,7 +116,7 @@ const CardImpresion = () => {
     const carritoActual = JSON.parse(localStorage.getItem('carrito')) || [];
     
     const nuevosItemsParaCarrito = archivos.map((arc, index) => {
-      const precioH = precioPorHoja[arc.tipoHoja][arc.color];
+      const precioH = precioPorHoja[arc.tipoHoja]?.[arc.color] || 0;
       const idUnico = `IMP-${Date.now()}-${index}`;
 
       // GUARDAMOS EL BINARIO EN EL PUENTE
@@ -134,8 +168,17 @@ const CardImpresion = () => {
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
               <Select size="small" value={arc.tipoHoja} onChange={v => updateArchivoConfig(arc.id, 'tipoHoja', v)} style={{ width: 70 }}>
-                <Option value="A4">A4</Option>
-                <Option value="A3">A3</Option>
+                {formatosDisponibles.length > 0 ? (
+                  formatosDisponibles.map(formato => (
+                    <Option key={formato} value={formato}>{formato}</Option>
+                  ))
+                ) : (
+                  <>
+                    <Option value="A4">A4</Option>
+                    <Option value="A3">A3</Option>
+                    <Option value="A5">A5</Option>
+                  </>
+                )}
               </Select>
 
               <Select size="small" value={arc.color} onChange={v => updateArchivoConfig(arc.id, 'color', v)} style={{ width: 110 }}>
@@ -149,7 +192,7 @@ const CardImpresion = () => {
               </div>
 
               <div style={{ marginLeft: 'auto', fontWeight: 'bold' }}>
-                ${arc.hojas * precioPorHoja[arc.tipoHoja][arc.color] * arc.cantidad}
+                ${(arc.hojas * (precioPorHoja[arc.tipoHoja]?.[arc.color] || 0) * arc.cantidad).toFixed(2)}
               </div>
             </div>
           </Card>

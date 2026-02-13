@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Table, Tag, Card, Typography, Spin, Button, Modal, Descriptions, Divider, Input, DatePicker, Space, message, Upload, Select, InputNumber, Alert } from 'antd';
 import { EyeOutlined, ClockCircleOutlined, SearchOutlined, FilePdfOutlined, CalendarOutlined, ArrowLeftOutlined, UploadOutlined, BellOutlined } from '@ant-design/icons';
 import { pedidosAPI } from '../services/api';
+import api from '../services/api';
 import Navbar from './Navbar';
 import dayjs from 'dayjs';
 
@@ -22,15 +23,42 @@ const MisPedidos = () => {
   const [archivosCorreccion, setArchivosCorreccion] = useState({}); // {impresionId: {file, formato, color, copias}}
   const [enviandoCorreccion, setEnviandoCorreccion] = useState(false);
   
-  // Precios por hoja
-  const precioPorHoja = {
+  // Precios dinámicos por hoja desde la BD
+  const [precioPorHoja, setPrecioPorHoja] = useState({
     A4: { 'blanco y negro': 20, color: 40 },
     A3: { 'blanco y negro': 30, color: 60 },
-  };
+  });
+  const [formatosDisponibles, setFormatosDisponibles] = useState([]);
 
   useEffect(() => {
     fetchPedidos();
+    cargarTarifas();
   }, []);
+
+  const cargarTarifas = async () => {
+    try {
+      const response = await api.get('tipo-impresion/activos/');
+      const tarifas = response.data;
+      
+      // Crear objeto de precios dinámico
+      const nuevasTarifas = {};
+      const formatos = new Set();
+      
+      tarifas.forEach(tarifa => {
+        if (!nuevasTarifas[tarifa.formato]) {
+          nuevasTarifas[tarifa.formato] = {};
+        }
+        const tipoColor = tarifa.color ? 'color' : 'blanco y negro';
+        nuevasTarifas[tarifa.formato][tipoColor] = tarifa.precio;
+        formatos.add(tarifa.formato);
+      });
+      
+      setPrecioPorHoja(nuevasTarifas);
+      setFormatosDisponibles(Array.from(formatos).sort());
+    } catch (error) {
+      console.error('Error al cargar tarifas:', error);
+    }
+  };
 
 
   const fetchPedidos = async (rangoOverride = null) => {
@@ -72,15 +100,47 @@ const MisPedidos = () => {
 
 
   const handleFileChange = (impresionId, file) => {
-    setArchivosCorreccion(prev => ({
-      ...prev,
-      [impresionId]: {
-        file: file,
-        formato: prev[impresionId]?.formato || 'A4',
-        color: prev[impresionId]?.color || 'blanco y negro',
-        copias: prev[impresionId]?.copias || 1
+    // Obtener páginas del PDF si es posible
+    const obtenerPaginas = async () => {
+      if (file.type === 'application/pdf') {
+        try {
+          const reader = new FileReader();
+          const paginas = await new Promise((resolve) => {
+            reader.onloadend = function() {
+              const contenido = reader.result;
+              const matches = contenido.match(/\/Count\s+(\d+)/g);
+              if (matches) {
+                const num = matches[matches.length - 1].match(/\d+/)[0];
+                resolve(parseInt(num));
+              } else {
+                const paginas = (contenido.match(/\/Type\s*\/Page\b/g) || []).length;
+                resolve(paginas > 0 ? paginas : 1);
+              }
+            };
+            reader.readAsText(file);
+          });
+          return paginas;
+        } catch (error) {
+          console.error('Error al contar páginas:', error);
+          return 1;
+        }
       }
-    }));
+      return 1; // Para imágenes u otros archivos
+    };
+
+    obtenerPaginas().then(hojas => {
+      setArchivosCorreccion(prev => ({
+        ...prev,
+        [impresionId]: {
+          file: file,
+          hojas: hojas,
+          formato: prev[impresionId]?.formato || 'A4',
+          color: prev[impresionId]?.color || 'blanco y negro',
+          copias: prev[impresionId]?.copias || 1
+        }
+      }));
+    });
+    
     return false; // Prevenir upload automático
   };
 
@@ -114,9 +174,9 @@ const MisPedidos = () => {
     }));
   };
 
-  const calcularSubtotal = (formato, color, copias) => {
-    const precioBase = precioPorHoja[formato]?.[color] || 20;
-    return precioBase * copias;
+  const calcularSubtotal = (formato, color, copias, hojas = 1) => {
+    const precioBase = precioPorHoja[formato]?.[color] || 0;
+    return precioBase * copias * hojas;
   };
 
   const handleEnviarCorreccion = async () => {
@@ -496,8 +556,16 @@ const MisPedidos = () => {
                                 onChange={(value) => handleChangeFormatoCorreccion(impresionId, value)}
                                 disabled={!archivosCorreccion[impresionId]?.file}
                               >
-                                <Select.Option value="A4">A4</Select.Option>
-                                <Select.Option value="A3">A3</Select.Option>
+                                {formatosDisponibles.length > 0 ? (
+                                  formatosDisponibles.map(formato => (
+                                    <Select.Option key={formato} value={formato}>{formato}</Select.Option>
+                                  ))
+                                ) : (
+                                  <>
+                                    <Select.Option value="A4">A4</Select.Option>
+                                    <Select.Option value="A3">A3</Select.Option>
+                                  </>
+                                )}
                               </Select>
                             );
                           }
@@ -555,8 +623,14 @@ const MisPedidos = () => {
                             if (!archivo?.file) {
                               return <Text type="secondary">-</Text>;
                             }
-                            const subtotal = calcularSubtotal(archivo.formato, archivo.color, archivo.copias);
-                            return <Text strong style={{ color: '#1890ff' }}>${subtotal}</Text>;
+                            const subtotal = calcularSubtotal(archivo.formato, archivo.color, archivo.copias, archivo.hojas || 1);
+                            const info = archivo.hojas ? ` (${archivo.hojas} pág${archivo.hojas !== 1 ? 's' : ''})` : '';
+                            return (
+                              <div>
+                                <Text strong style={{ color: '#1890ff' }}>${subtotal.toFixed(2)}</Text>
+                                {info && <div><Text type="secondary" style={{ fontSize: 11 }}>{info}</Text></div>}
+                              </div>
+                            );
                           }
                         },
                         {

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Usuario, UsuarioTipo, Pedido, Impresion, Producto, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial,Reporte
+from .models import Usuario, UsuarioTipo, Pedido, Impresion, Producto, PedidoProductoDetalle, PedidoImpresionDetalle, PedidoEstadoHistorial, Reporte, TipoImpresion
 
 
 
@@ -264,6 +264,25 @@ class ProductoSerializer(serializers.ModelSerializer):
     
     def get_estado(self, obj):
         return "Activo" if obj.activo else "Inactivo"
+
+
+class TipoImpresionSerializer(serializers.ModelSerializer):
+    estado = serializers.SerializerMethodField(read_only=True)
+    formato_display = serializers.CharField(source='get_formato_display', read_only=True)
+    tipo_color = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = TipoImpresion
+        fields = ['id', 'formato', 'formato_display', 'color', 'tipo_color', 
+                  'descripcion', 'precio', 'activo', 'estado', 
+                  'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_estado(self, obj):
+        return "Activo" if obj.activo else "Inactivo"
+    
+    def get_tipo_color(self, obj):
+        return "Color" if obj.color else "Blanco y Negro"
 
 
 class ReporteSerializer(serializers.ModelSerializer):
